@@ -1,36 +1,111 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ☕ CaféMeeple — Board Game Café Management SaaS
+
+A purpose-built management platform for board game cafés. Manage your game library, tables, cover charges, reservations, events, and analytics in one place.
+
+## Features
+
+- **Landing Page** — Marketing page for café owners with pricing, features, and testimonials
+- **Admin Dashboard** — Today's stats, revenue charts (recharts), popular games, alerts
+- **Game Library** — 100+ seeded board games, search/filter, condition tracking, add/edit/remove, replacement flagging
+- **Tables & Sessions** — Visual table map, check-in/check-out, active sessions with running totals, cover charges
+- **Game Checkout** — Assign games to table sessions, return flow with condition logging, checkout history
+- **Reservations** — Calendar and list views, create/edit reservations, status management (confirm, no-show, cancel)
+- **Events & RSVPs** — Create events, RSVP tracking with capacity management, event types
+
+## Tech Stack
+
+- **Framework**: Next.js 16 with App Router (TypeScript)
+- **Styling**: Tailwind CSS 4
+- **Database**: SQLite via better-sqlite3
+- **Charts**: Recharts
+- **Icons**: Lucide React
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Installation
+
+```bash
+npm install
+```
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the landing page.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Navigate to [http://localhost:3000/admin](http://localhost:3000/admin) for the admin dashboard.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The database is automatically created and seeded with sample data on first load:
+- 100+ board games across multiple categories
+- 15 themed tables across 5 sections
+- Sample reservations, events, and RSVPs
+- 30 days of mock session/checkout history
+- 4 active sessions for today
 
-## Learn More
+### Build
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Lint
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run lint
+```
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+app/
+├── page.tsx                    # Landing/marketing page
+├── layout.tsx                  # Root layout
+├── globals.css                 # Global styles (Tailwind)
+├── admin/
+│   ├── layout.tsx              # Admin layout with sidebar
+│   ├── page.tsx                # Dashboard with stats & charts
+│   ├── games/page.tsx          # Game library management
+│   ├── tables/page.tsx         # Table map & session management
+│   ├── checkout/page.tsx       # Game checkout system
+│   ├── reservations/page.tsx   # Reservation calendar & list
+│   └── events/page.tsx         # Event & RSVP management
+├── api/
+│   ├── dashboard/route.ts      # Dashboard stats endpoint
+│   ├── seed/route.ts           # Database seeding endpoint
+│   ├── games/                  # CRUD for games
+│   ├── tables/                 # CRUD for tables
+│   ├── sessions/               # Session management
+│   ├── reservations/           # Reservation management
+│   ├── events/                 # Event management
+│   └── checkout/               # Game checkout/return
+components/
+├── Sidebar.tsx                 # Admin navigation sidebar
+└── ui.tsx                      # Shared UI components
+lib/
+├── db.ts                       # Database initialization & schema
+└── seed.ts                     # Seed data (100+ games, tables, etc.)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database
+
+SQLite database (`cafemeeple.db`) is created automatically in the project root. It includes:
+
+- **games** — Board game catalog with metadata and condition tracking
+- **tables** — Café tables with capacity and section info
+- **sessions** — Visit sessions with cover charge billing
+- **game_checkouts** — Game-to-session assignment and return tracking
+- **reservations** — Guest reservations with table assignment
+- **events** — Café events (game nights, tournaments, etc.)
+- **rsvps** — Event RSVP tracking
+
+## License
+
+Private — All rights reserved.
