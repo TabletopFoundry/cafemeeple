@@ -27,7 +27,7 @@ export async function GET(request: Request) {
       params.push(gameId);
     }
 
-    query += " ORDER BY gc.checked_out_at DESC LIMIT 100";
+    query += " ORDER BY gc.checked_out_at DESC LIMIT 150";
 
     const checkouts = db.prepare(query).all(...params);
     return Response.json(checkouts);
@@ -47,8 +47,16 @@ export async function POST(request: Request) {
       return Response.json({ error: "Session ID and Game ID are required" }, { status: 400 });
     }
 
-    // Check game is available
-    const game = db.prepare("SELECT * FROM games WHERE id = ?").get(game_id) as { copies_available: number } | undefined;
+    const session = db.prepare("SELECT status FROM sessions WHERE id = ?").get(session_id) as
+      | { status: string }
+      | undefined;
+    if (!session || session.status !== "active") {
+      return Response.json({ error: "Select an active table session first." }, { status: 400 });
+    }
+
+    const game = db.prepare("SELECT copies_available FROM games WHERE id = ?").get(game_id) as
+      | { copies_available: number }
+      | undefined;
     if (!game || game.copies_available <= 0) {
       return Response.json({ error: "Game not available" }, { status: 400 });
     }
@@ -58,10 +66,13 @@ export async function POST(request: Request) {
       VALUES (?, ?)
     `).run(session_id, game_id);
 
-    db.prepare("UPDATE games SET copies_available = copies_available - 1 WHERE id = ?").run(game_id);
+    db.prepare("UPDATE games SET copies_available = copies_available - 1, updated_at = datetime('now') WHERE id = ?").run(game_id);
 
     const checkout = db.prepare(`
-      SELECT gc.*, g.title as game_title FROM game_checkouts gc JOIN games g ON gc.game_id = g.id WHERE gc.id = ?
+      SELECT gc.*, g.title as game_title
+      FROM game_checkouts gc
+      JOIN games g ON gc.game_id = g.id
+      WHERE gc.id = ?
     `).get(result.lastInsertRowid);
 
     return Response.json(checkout, { status: 201 });

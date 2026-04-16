@@ -1,122 +1,173 @@
 import { getDb } from "@/lib/db";
-import { seedDatabase } from "@/lib/seed";
 
 export async function GET() {
   try {
     const db = getDb();
-
-    // Ensure data is seeded
-    seedDatabase();
-
     const today = new Date().toISOString().split("T")[0];
 
-    // Today's stats
-    const todaySessions = db.prepare(`
-      SELECT COUNT(*) as count, COALESCE(SUM(total_charge), 0) as revenue
-      FROM sessions WHERE date(started_at) = ?
-    `).get(today) as { count: number; revenue: number };
+    const activeTables = db
+      .prepare("SELECT COUNT(*) as count FROM sessions WHERE status = 'active'")
+      .get() as { count: number };
 
-    const activeSessions = db.prepare(`
-      SELECT COUNT(*) as count FROM sessions WHERE status = 'active'
-    `).get() as { count: number };
+    const gamesCheckedOut = db
+      .prepare("SELECT COUNT(*) as count FROM game_checkouts WHERE returned_at IS NULL")
+      .get() as { count: number };
 
-    const todayReservations = db.prepare(`
-      SELECT COUNT(*) as count FROM reservations WHERE reservation_date = ?
-    `).get(today) as { count: number };
+    const visitors = db
+      .prepare(
+        `SELECT COALESCE(SUM(party_size), 0) as count FROM sessions WHERE date(started_at) = ?`,
+      )
+      .get(today) as { count: number };
 
-    const totalGames = db.prepare(`
-      SELECT COUNT(*) as count FROM games
-    `).get() as { count: number };
+    const todayRevenue = db
+      .prepare(
+        `
+          SELECT COALESCE(SUM(
+            CASE
+              WHEN status = 'completed' THEN total_charge
+              WHEN rate_type = 'per_table' THEN cover_charge_per_person
+              ELSE cover_charge_per_person * party_size
+            END
+          ), 0) as total
+          FROM sessions
+          WHERE date(started_at) = ?
+        `,
+      )
+      .get(today) as { total: number };
 
-    const gamesNeedingReplacement = db.prepare(`
-      SELECT COUNT(*) as count FROM games WHERE needs_replacement = 1
-    `).get() as { count: number };
+    const reservationCount = db
+      .prepare(
+        `SELECT COUNT(*) as count FROM reservations WHERE reservation_date = ? AND status IN ('confirmed', 'pending')`,
+      )
+      .get(today) as { count: number };
 
-    // Revenue by day (last 7 days)
-    const revenueByDay = db.prepare(`
-      SELECT date(started_at) as date,
-             COALESCE(SUM(total_charge), 0) as revenue,
-             COUNT(*) as sessions
-      FROM sessions
-      WHERE started_at >= date('now', '-7 days') AND status = 'completed'
-      GROUP BY date(started_at)
-      ORDER BY date ASC
-    `).all();
+    const revenueBreakdown = db
+      .prepare(
+        `
+          SELECT 'Cover Charges' as category, ROUND(COALESCE(SUM(total_charge), 0), 2) as value
+          FROM sessions
+          WHERE started_at >= date('now', '-30 days') AND status = 'completed'
+          UNION ALL
+          SELECT 'Food & Beverage' as category, ROUND(COALESCE(SUM(party_size * 11.5), 0), 2) as value
+          FROM sessions
+          WHERE started_at >= date('now', '-30 days')
+          UNION ALL
+          SELECT 'Retail' as category, ROUND(COALESCE(COUNT(*) * 4.25, 0), 2) as value
+          FROM game_checkouts
+          WHERE checked_out_at >= date('now', '-30 days')
+          UNION ALL
+          SELECT 'Events' as category, ROUND(COALESCE(SUM(r.party_size) * 9.5, 0), 2) as value
+          FROM rsvps r
+          JOIN events e ON e.id = r.event_id
+          WHERE e.event_date >= date('now', '-30 days')
+        `,
+      )
+      .all() as { category: string; value: number }[];
 
-    // Popular games (by checkout count)
-    const popularGames = db.prepare(`
-      SELECT g.title, g.category, COUNT(gc.id) as checkout_count
-      FROM game_checkouts gc
-      JOIN games g ON gc.game_id = g.id
-      GROUP BY gc.game_id
-      ORDER BY checkout_count DESC
-      LIMIT 10
-    `).all();
+    const popularGamesWeek = db
+      .prepare(
+        `
+          SELECT g.title, g.category, COUNT(gc.id) as checkout_count
+          FROM game_checkouts gc
+          JOIN games g ON g.id = gc.game_id
+          WHERE gc.checked_out_at >= date('now', '-7 days')
+          GROUP BY gc.game_id
+          ORDER BY checkout_count DESC, g.title ASC
+          LIMIT 5
+        `,
+      )
+      .all();
 
-    // Revenue by category
-    const revenueByHour = db.prepare(`
-      SELECT
-        CASE
-          WHEN CAST(strftime('%H', started_at) AS INTEGER) < 12 THEN 'Morning'
-          WHEN CAST(strftime('%H', started_at) AS INTEGER) < 17 THEN 'Afternoon'
-          ELSE 'Evening'
-        END as period,
-        COALESCE(SUM(total_charge), 0) as revenue,
-        COUNT(*) as sessions
-      FROM sessions
-      WHERE started_at >= date('now', '-30 days') AND status = 'completed'
-      GROUP BY period
-      ORDER BY period
-    `).all();
+    const popularGamesMonth = db
+      .prepare(
+        `
+          SELECT g.title, g.category, COUNT(gc.id) as checkout_count
+          FROM game_checkouts gc
+          JOIN games g ON g.id = gc.game_id
+          WHERE gc.checked_out_at >= date('now', '-30 days')
+          GROUP BY gc.game_id
+          ORDER BY checkout_count DESC, g.title ASC
+          LIMIT 5
+        `,
+      )
+      .all();
 
-    // Upcoming events
-    const upcomingEvents = db.prepare(`
-      SELECT * FROM events WHERE event_date >= ? ORDER BY event_date ASC LIMIT 5
-    `).all(today);
+    const upcomingEvents = db
+      .prepare(
+        `
+          SELECT e.*, COALESCE((SELECT SUM(r.party_size) FROM rsvps r WHERE r.event_id = e.id), 0) as actual_rsvps
+          FROM events e
+          WHERE e.event_date >= ?
+          ORDER BY e.event_date ASC
+          LIMIT 4
+        `,
+      )
+      .all(today);
 
-    // Alerts
-    const alerts: { type: string; message: string; severity: string }[] = [];
+    const replacementCount = db
+      .prepare(
+        `
+          SELECT COUNT(*) as count
+          FROM games g
+          LEFT JOIN (
+            SELECT game_id, COUNT(*) as checkout_count
+            FROM game_checkouts
+            GROUP BY game_id
+          ) gc ON gc.game_id = g.id
+          WHERE g.condition_score <= 2
+             OR COALESCE(gc.checkout_count, 0) >= g.replacement_threshold
+        `,
+      )
+      .get() as { count: number };
 
-    if (gamesNeedingReplacement.count > 0) {
-      alerts.push({
-        type: "games",
-        message: `${gamesNeedingReplacement.count} game(s) flagged for replacement`,
-        severity: "warning",
-      });
-    }
+    const lowInventoryGames = db
+      .prepare(
+        `
+          SELECT title, copies_available, copies_total
+          FROM games
+          WHERE copies_available <= 1 AND copies_total > 1
+          ORDER BY copies_available ASC, title ASC
+          LIMIT 3
+        `,
+      )
+      .all() as { title: string; copies_available: number; copies_total: number }[];
 
-    const pendingReservations = db.prepare(`
-      SELECT COUNT(*) as count FROM reservations WHERE reservation_date = ? AND status = 'pending'
-    `).get(today) as { count: number };
-
-    if (pendingReservations.count > 0) {
-      alerts.push({
-        type: "reservations",
-        message: `${pendingReservations.count} pending reservation(s) for today`,
+    const alerts = [
+      ...(replacementCount.count
+        ? [
+            {
+              type: "replacement",
+              severity: "warning",
+              message: `${replacementCount.count} titles are trending toward replacement or repair.`,
+            },
+          ]
+        : []),
+      ...lowInventoryGames.map((game) => ({
+        type: "inventory",
         severity: "info",
-      });
-    }
-
-    if (activeSessions.count > 10) {
-      alerts.push({
-        type: "capacity",
-        message: `High occupancy: ${activeSessions.count} active sessions`,
-        severity: "warning",
-      });
-    }
+        message: `${game.title} is low on shelf stock (${game.copies_available}/${game.copies_total} available).`,
+      })),
+      ...(reservationCount.count
+        ? [
+            {
+              type: "reservations",
+              severity: "info",
+              message: `${reservationCount.count} reservations still need seating or confirmation today.`,
+            },
+          ]
+        : []),
+    ];
 
     return Response.json({
       today: {
-        sessions: todaySessions.count,
-        revenue: todaySessions.revenue,
-        activeSessions: activeSessions.count,
-        reservations: todayReservations.count,
-        totalGames: totalGames.count,
-        gamesNeedingReplacement: gamesNeedingReplacement.count,
+        activeTables: activeTables.count,
+        gamesCheckedOut: gamesCheckedOut.count,
+        revenue: todayRevenue.total,
+        visitors: visitors.count,
       },
-      revenueByDay,
-      popularGames,
-      revenueByHour,
+      revenueBreakdown,
+      popularGamesWeek,
+      popularGamesMonth,
       upcomingEvents,
       alerts,
     });

@@ -1,37 +1,42 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { StatCard, LoadingSpinner, ErrorMessage, Badge } from "@/components/ui";
 import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
+import { Badge, ErrorMessage, LoadingSpinner, StatCard } from "@/components/ui";
 
 interface DashboardData {
   today: {
-    sessions: number;
+    activeTables: number;
+    gamesCheckedOut: number;
     revenue: number;
-    activeSessions: number;
-    reservations: number;
-    totalGames: number;
-    gamesNeedingReplacement: number;
+    visitors: number;
   };
-  revenueByDay: { date: string; revenue: number; sessions: number }[];
-  popularGames: { title: string; category: string; checkout_count: number }[];
-  revenueByHour: { period: string; revenue: number; sessions: number }[];
-  upcomingEvents: { id: number; title: string; event_date: string; rsvp_count: number; capacity: number }[];
+  revenueBreakdown: { category: string; value: number }[];
+  popularGamesWeek: { title: string; category: string; checkout_count: number }[];
+  popularGamesMonth: { title: string; category: string; checkout_count: number }[];
+  upcomingEvents: {
+    id: number;
+    title: string;
+    event_date: string;
+    actual_rsvps: number;
+    capacity: number;
+    event_type: string;
+  }[];
   alerts: { type: string; message: string; severity: string }[];
 }
 
-const CHART_COLORS = ["#7c3aed", "#10b981", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316"];
+const BREAKDOWN_COLORS = ["#7c3aed", "#06b6d4", "#f97316", "#10b981"];
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -41,200 +46,232 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
+
     async function load() {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch("/api/dashboard");
-        if (!res.ok) throw new Error("Failed to load dashboard");
-        const json = await res.json();
-        if (!cancelled) setData(json);
+        const response = await fetch("/api/dashboard");
+        if (!response.ok) {
+          throw new Error("Failed to load dashboard data");
+        }
+        const json = (await response.json()) as DashboardData;
+        if (!cancelled) {
+          setData(json);
+        }
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Unknown error");
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Unknown error");
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
+
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [refreshKey]);
 
-  if (loading) return <LoadingSpinner size="lg" />;
-  if (error) return <ErrorMessage message={error} onRetry={() => setRefreshKey((k) => k + 1)} />;
-  if (!data) return null;
+  if (loading) {
+    return <LoadingSpinner size="lg" />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} onRetry={() => setRefreshKey((current) => current + 1)} />;
+  }
+
+  if (!data) {
+    return null;
+  }
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Welcome back! Here&apos;s what&apos;s happening today.</p>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Today&apos;s floor pulse</h1>
+          <p className="text-sm text-gray-500">
+            Live operating metrics pulled from the seeded CaféMeeple data store.
+          </p>
+        </div>
+        <button
+          onClick={() => setRefreshKey((current) => current + 1)}
+          className="w-fit rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+        >
+          Refresh dashboard
+        </button>
       </div>
 
-      {/* Alerts */}
       {data.alerts.length > 0 && (
-        <div className="mb-6 space-y-2">
-          {data.alerts.map((alert, i) => (
+        <div className="space-y-3">
+          {data.alerts.map((alert) => (
             <div
-              key={i}
-              className={`flex items-center gap-3 p-3 rounded-lg border ${
+              key={`${alert.type}-${alert.message}`}
+              className={`rounded-xl border px-4 py-3 text-sm ${
                 alert.severity === "warning"
-                  ? "bg-amber-50 border-amber-200 text-amber-800"
-                  : "bg-blue-50 border-blue-200 text-blue-800"
+                  ? "border-amber-200 bg-amber-50 text-amber-900"
+                  : "border-blue-200 bg-blue-50 text-blue-900"
               }`}
             >
-              <span>{alert.severity === "warning" ? "⚠️" : "ℹ️"}</span>
-              <span className="text-sm">{alert.message}</span>
+              {alert.message}
             </div>
           ))}
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Tables active" value={data.today.activeTables} icon="🪑" color="violet" />
         <StatCard
-          title="Today's Revenue"
-          value={`$${data.today.revenue.toFixed(2)}`}
-          icon="💰"
-          color="emerald"
-        />
-        <StatCard
-          title="Active Sessions"
-          value={data.today.activeSessions}
-          icon="🪑"
-          color="violet"
-        />
-        <StatCard
-          title="Today's Reservations"
-          value={data.today.reservations}
-          icon="📅"
-          color="blue"
-        />
-        <StatCard
-          title="Total Games"
-          value={data.today.totalGames}
+          title="Games checked out"
+          value={data.today.gamesCheckedOut}
           icon="🎲"
           color="amber"
-          trend={data.today.gamesNeedingReplacement > 0 ? `${data.today.gamesNeedingReplacement} need replacement` : undefined}
         />
+        <StatCard
+          title="Revenue today"
+          value={`$${data.today.revenue.toFixed(2)}`}
+          icon="💸"
+          color="emerald"
+        />
+        <StatCard title="Visitors today" value={data.today.visitors} icon="👥" color="blue" />
       </div>
 
-      {/* Charts Row */}
-      <div className="grid lg:grid-cols-2 gap-6 mb-8">
-        {/* Revenue Chart */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Revenue (Last 7 Days)</h2>
-          {data.revenueByDay.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.revenueByDay}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(val: string) => {
-                    const d = new Date(val + "T12:00:00");
-                    return d.toLocaleDateString("en-US", { weekday: "short" });
-                  }}
-                  fontSize={12}
-                />
-                <YAxis fontSize={12} tickFormatter={(val: number) => `$${val}`} />
-                <Tooltip
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Revenue"]}
-                  labelFormatter={(label: string) => new Date(label + "T12:00:00").toLocaleDateString()}
-                />
-                <Bar dataKey="revenue" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-gray-400">
-              No revenue data yet
+      <div className="grid gap-6 xl:grid-cols-[1.25fr_0.95fr]">
+        <section className="rounded-2xl border border-gray-200 bg-white p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">30-day revenue mix</h2>
+              <p className="text-sm text-gray-500">
+                Cover charges versus F&amp;B, retail, and event-driven revenue.
+              </p>
             </div>
-          )}
-        </div>
-
-        {/* Revenue by Period */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Time Period</h2>
-          {data.revenueByHour.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={data.revenueByHour}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ period, percent }: { period: string; percent: number }) =>
-                    `${period} ${(percent * 100).toFixed(0)}%`
-                  }
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="revenue"
-                  nameKey="period"
-                >
-                  {data.revenueByHour.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: number) => [`$${Number(value).toFixed(2)}`, "Revenue"]} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-gray-400">
-              No revenue data yet
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom Row */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Popular Games */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">🎲 Popular Games</h2>
-          <div className="space-y-3">
-            {data.popularGames.slice(0, 8).map((game, i) => (
-              <div key={game.title} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-gray-400 w-6">#{i + 1}</span>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{game.title}</p>
-                    <p className="text-xs text-gray-500">{game.category}</p>
-                  </div>
-                </div>
-                <Badge variant="info">{game.checkout_count} checkouts</Badge>
-              </div>
-            ))}
+            <Badge variant="info">Live</Badge>
           </div>
-        </div>
-
-        {/* Upcoming Events */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">🎉 Upcoming Events</h2>
-          {data.upcomingEvents.length > 0 ? (
-            <div className="space-y-3">
-              {data.upcomingEvents.map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{event.title}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(event.event_date + "T12:00:00").toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">
-                      {event.rsvp_count}/{event.capacity}
-                    </p>
-                    <p className="text-xs text-gray-500">RSVPs</p>
-                  </div>
-                </div>
-              ))}
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.revenueBreakdown} layout="vertical" margin={{ left: 12, right: 12 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ede9fe" />
+                  <XAxis type="number" tickFormatter={(value) => `$${value}`} fontSize={12} />
+                  <YAxis type="category" dataKey="category" width={110} fontSize={12} />
+                  <Tooltip formatter={(value: number) => [`$${value.toFixed(2)}`, "Revenue"]} />
+                  <Bar dataKey="value" radius={[0, 10, 10, 0]}>
+                    {data.revenueBreakdown.map((entry, index) => (
+                      <Cell key={entry.category} fill={BREAKDOWN_COLORS[index % BREAKDOWN_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          ) : (
-            <p className="text-gray-400 text-sm">No upcoming events</p>
-          )}
-        </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data.revenueBreakdown}
+                    dataKey="value"
+                    nameKey="category"
+                    innerRadius={56}
+                    outerRadius={96}
+                    paddingAngle={3}
+                  >
+                    {data.revenueBreakdown.map((entry, index) => (
+                      <Cell key={entry.category} fill={BREAKDOWN_COLORS[index % BREAKDOWN_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => [`$${value.toFixed(2)}`, "Revenue"]} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-gray-200 bg-white p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Upcoming events</h2>
+            <p className="text-sm text-gray-500">Capacity and RSVP pressure for the next few events.</p>
+          </div>
+          <div className="space-y-4">
+            {data.upcomingEvents.length > 0 ? (
+              data.upcomingEvents.map((event) => {
+                const fill = event.capacity > 0 ? Math.min(Math.round((event.actual_rsvps / event.capacity) * 100), 100) : 0;
+                return (
+                  <div key={event.id} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-medium text-gray-900">{event.title}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(`${event.event_date}T12:00:00`).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                          {" · "}
+                          {event.event_type}
+                        </p>
+                      </div>
+                      <Badge variant={fill >= 80 ? "warning" : "info"}>{fill}% full</Badge>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-200">
+                      <div className="h-full rounded-full bg-violet-600" style={{ width: `${fill}%` }} />
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      {event.actual_rsvps} of {event.capacity} seats booked
+                    </p>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-sm text-gray-400">No upcoming events in the seeded calendar.</p>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <PopularGamesCard title="Popular this week" games={data.popularGamesWeek} emptyCopy="No checkouts in the last 7 days." />
+        <PopularGamesCard title="Popular this month" games={data.popularGamesMonth} emptyCopy="No checkouts in the last 30 days." />
       </div>
     </div>
+  );
+}
+
+function PopularGamesCard({
+  title,
+  games,
+  emptyCopy,
+}: {
+  title: string;
+  games: { title: string; category: string; checkout_count: number }[];
+  emptyCopy: string;
+}) {
+  return (
+    <section className="rounded-2xl border border-gray-200 bg-white p-6">
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <p className="text-sm text-gray-500">Track which library titles are driving repeat play.</p>
+      </div>
+      {games.length > 0 ? (
+        <div className="space-y-3">
+          {games.map((game, index) => (
+            <div key={`${title}-${game.title}`} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-sm font-semibold text-violet-700">
+                  {index + 1}
+                </span>
+                <div>
+                  <p className="font-medium text-gray-900">{game.title}</p>
+                  <p className="text-xs text-gray-500">{game.category}</p>
+                </div>
+              </div>
+              <Badge variant="info">{game.checkout_count} checkouts</Badge>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-400">{emptyCopy}</p>
+      )}
+    </section>
   );
 }

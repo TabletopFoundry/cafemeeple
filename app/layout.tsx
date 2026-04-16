@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { seedDatabase } from "@/lib/seed";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,7 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "CaféMeeple — Board Game Café Management",
-  description: "The all-in-one platform for managing your board game café: game library, tables, reservations, events, and analytics.",
+  description:
+    "The all-in-one platform for managing your board game café: game library, tables, reservations, events, and analytics.",
 };
 
 export default function RootLayout({
@@ -22,6 +24,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  seedDatabase();
+
   return (
     <html
       lang="en"

@@ -3,7 +3,24 @@ import { getDb } from "@/lib/db";
 export async function GET() {
   try {
     const db = getDb();
-    const tables = db.prepare("SELECT * FROM tables ORDER BY name ASC").all();
+    const tables = db.prepare(`
+      SELECT
+        t.*,
+        CASE
+          WHEN EXISTS (SELECT 1 FROM sessions s WHERE s.table_id = t.id AND s.status = 'active') THEN 'occupied'
+          WHEN EXISTS (
+            SELECT 1
+            FROM reservations r
+            WHERE r.table_id = t.id
+              AND r.reservation_date = date('now')
+              AND r.status IN ('confirmed', 'pending')
+          ) THEN 'reserved'
+          ELSE 'available'
+        END as status
+      FROM tables t
+      ORDER BY t.name ASC
+    `).all();
+
     return Response.json(tables);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
