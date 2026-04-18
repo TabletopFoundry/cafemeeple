@@ -5,10 +5,11 @@ export function LoadingSpinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
     lg: "h-12 w-12",
   };
   return (
-    <div className="flex justify-center items-center p-8">
+    <div className="flex justify-center items-center p-8" role="status" aria-label="Loading">
       <div
         className={`${sizeClasses[size]} animate-spin rounded-full border-2 border-gray-300 border-t-violet-600`}
       />
+      <span className="sr-only">Loading…</span>
     </div>
   );
 }

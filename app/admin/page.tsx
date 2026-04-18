@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Badge, ErrorMessage, LoadingSpinner, StatCard } from "@/components/ui";
+import { Badge, ErrorMessage, LoadingCard, StatCard } from "@/components/ui";
 
 interface DashboardData {
   today: {
@@ -77,7 +77,20 @@ export default function DashboardPage() {
   }, [refreshKey]);
 
   if (loading) {
-    return <LoadingSpinner size="lg" />;
+    return (
+      <div className="space-y-8">
+        <div className="h-8 w-64 bg-gray-200 rounded animate-pulse" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <LoadingCard key={i} />
+          ))}
+        </div>
+        <div className="grid gap-6 xl:grid-cols-2">
+          <LoadingCard />
+          <LoadingCard />
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -85,7 +98,12 @@ export default function DashboardPage() {
   }
 
   if (!data) {
-    return null;
+    return (
+      <ErrorMessage
+        message="Dashboard data is unavailable. The server returned an empty response."
+        onRetry={() => setRefreshKey((current) => current + 1)}
+      />
+    );
   }
 
   return (

@@ -1,21 +1,5 @@
 import { getDb } from "@/lib/db";
-
-function conditionScoreForLabel(condition: string) {
-  switch (condition) {
-    case "Excellent":
-      return 5;
-    case "Good":
-      return 4;
-    case "Fair":
-      return 3;
-    case "Worn":
-      return 2;
-    case "Needs Replacement":
-      return 1;
-    default:
-      return 4;
-  }
-}
+import { conditionScoreForLabel } from "@/lib/game-utils";
 
 export async function GET(request: Request) {
   try {

@@ -61,12 +61,18 @@ export async function POST(request: Request) {
       return Response.json({ error: "Game not available" }, { status: 400 });
     }
 
-    const result = db.prepare(`
-      INSERT INTO game_checkouts (session_id, game_id)
-      VALUES (?, ?)
-    `).run(session_id, game_id);
+    const checkoutTx = db.transaction(() => {
+      const result = db.prepare(`
+        INSERT INTO game_checkouts (session_id, game_id)
+        VALUES (?, ?)
+      `).run(session_id, game_id);
 
-    db.prepare("UPDATE games SET copies_available = copies_available - 1, updated_at = datetime('now') WHERE id = ?").run(game_id);
+      db.prepare("UPDATE games SET copies_available = copies_available - 1, updated_at = datetime('now') WHERE id = ?").run(game_id);
+
+      return result;
+    });
+
+    const result = checkoutTx();
 
     const checkout = db.prepare(`
       SELECT gc.*, g.title as game_title

@@ -92,12 +92,18 @@ export async function POST(request: Request) {
     }
 
     const billingType = rate_type === "per_table" ? "per_table" : "per_person";
-    const result = db.prepare(`
-      INSERT INTO sessions (table_id, party_name, party_size, rate_type, cover_charge_per_person)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(table_id, party_name || "Walk-in", party_size || 2, billingType, cover_charge_per_person || 5.0);
+    const sessionTx = db.transaction(() => {
+      const result = db.prepare(`
+        INSERT INTO sessions (table_id, party_name, party_size, rate_type, cover_charge_per_person)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(table_id, party_name || "Walk-in", party_size || 2, billingType, cover_charge_per_person || 5.0);
 
-    db.prepare("UPDATE tables SET status = 'occupied' WHERE id = ?").run(table_id);
+      db.prepare("UPDATE tables SET status = 'occupied' WHERE id = ?").run(table_id);
+
+      return result;
+    });
+
+    const result = sessionTx();
 
     const session = db.prepare(`
       SELECT

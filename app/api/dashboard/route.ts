@@ -1,5 +1,11 @@
 import { getDb } from "@/lib/db";
 
+const DASHBOARD_ESTIMATES = {
+  avgFoodBeveragePerPerson: 11.5,
+  avgRetailPerCheckout: 4.25,
+  avgEventTicketPerPerson: 9.5,
+} as const;
+
 export async function GET() {
   try {
     const db = getDb();
@@ -48,15 +54,15 @@ export async function GET() {
           FROM sessions
           WHERE started_at >= date('now', '-30 days') AND status = 'completed'
           UNION ALL
-          SELECT 'Food & Beverage' as category, ROUND(COALESCE(SUM(party_size * 11.5), 0), 2) as value
+          SELECT 'Food & Beverage' as category, ROUND(COALESCE(SUM(party_size * ${DASHBOARD_ESTIMATES.avgFoodBeveragePerPerson}), 0), 2) as value
           FROM sessions
           WHERE started_at >= date('now', '-30 days')
           UNION ALL
-          SELECT 'Retail' as category, ROUND(COALESCE(COUNT(*) * 4.25, 0), 2) as value
+          SELECT 'Retail' as category, ROUND(COALESCE(COUNT(*) * ${DASHBOARD_ESTIMATES.avgRetailPerCheckout}, 0), 2) as value
           FROM game_checkouts
           WHERE checked_out_at >= date('now', '-30 days')
           UNION ALL
-          SELECT 'Events' as category, ROUND(COALESCE(SUM(r.party_size) * 9.5, 0), 2) as value
+          SELECT 'Events' as category, ROUND(COALESCE(SUM(r.party_size) * ${DASHBOARD_ESTIMATES.avgEventTicketPerPerson}, 0), 2) as value
           FROM rsvps r
           JOIN events e ON e.id = r.event_id
           WHERE e.event_date >= date('now', '-30 days')

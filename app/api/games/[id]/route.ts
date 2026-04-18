@@ -1,39 +1,25 @@
 import { getDb } from "@/lib/db";
+import { conditionScoreForLabel } from "@/lib/game-utils";
+import type { Game } from "@/lib/types";
 
-interface GameRow {
-  id: number;
-  title: string;
-  min_players: number;
-  max_players: number;
-  play_time_minutes: number;
-  complexity: number;
-  category: string;
-  description: string;
-  image_url: string;
-  copies_total: number;
-  copies_available: number;
-  condition: string;
-  condition_score: number;
-  shelf_location: string;
-  replacement_threshold: number;
-}
-
-function conditionScoreForLabel(condition: string) {
-  switch (condition) {
-    case "Excellent":
-      return 5;
-    case "Good":
-      return 4;
-    case "Fair":
-      return 3;
-    case "Worn":
-      return 2;
-    case "Needs Replacement":
-      return 1;
-    default:
-      return 4;
-  }
-}
+type GameRow = Pick<
+  Game,
+  | "id"
+  | "title"
+  | "min_players"
+  | "max_players"
+  | "play_time_minutes"
+  | "complexity"
+  | "category"
+  | "description"
+  | "image_url"
+  | "copies_total"
+  | "copies_available"
+  | "condition"
+  | "condition_score"
+  | "shelf_location"
+  | "replacement_threshold"
+>;
 
 export async function GET(
   _request: Request,
@@ -92,6 +78,13 @@ export async function PUT(
             shelf_location = ?,
             replacement_threshold = ?,
             last_inspected_at = datetime('now'),
+            needs_replacement = CASE
+              WHEN ? <= 2 THEN 1
+              WHEN (
+                SELECT COUNT(*) FROM game_checkouts gc WHERE gc.game_id = ?
+              ) >= ? THEN 1
+              ELSE 0
+            END,
             updated_at = datetime('now')
         WHERE id = ?
       `,
@@ -110,24 +103,11 @@ export async function PUT(
       score,
       body.shelf_location ?? existing.shelf_location,
       replacementThreshold,
+      score,
+      Number(id),
+      replacementThreshold,
       id,
     );
-
-    db.prepare(
-      `
-        UPDATE games
-        SET needs_replacement = CASE
-          WHEN condition_score <= 2 THEN 1
-          WHEN (
-            SELECT COUNT(*)
-            FROM game_checkouts gc
-            WHERE gc.game_id = games.id
-          ) >= replacement_threshold THEN 1
-          ELSE 0
-        END
-        WHERE id = ?
-      `,
-    ).run(id);
 
     const game = db.prepare("SELECT * FROM games WHERE id = ?").get(id);
     return Response.json(game);
