@@ -9,7 +9,7 @@ const DASHBOARD_ESTIMATES = {
 export async function GET() {
   try {
     const db = getDb();
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toISOString().slice(0, 10);
 
     const activeTables = db
       .prepare("SELECT COUNT(*) as count FROM sessions WHERE status = 'active'")

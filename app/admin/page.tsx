@@ -14,27 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { Badge, ErrorMessage, LoadingCard, StatCard } from "@/components/ui";
-
-interface DashboardData {
-  today: {
-    activeTables: number;
-    gamesCheckedOut: number;
-    revenue: number;
-    visitors: number;
-  };
-  revenueBreakdown: { category: string; value: number }[];
-  popularGamesWeek: { title: string; category: string; checkout_count: number }[];
-  popularGamesMonth: { title: string; category: string; checkout_count: number }[];
-  upcomingEvents: {
-    id: number;
-    title: string;
-    event_date: string;
-    actual_rsvps: number;
-    capacity: number;
-    event_type: string;
-  }[];
-  alerts: { type: string; message: string; severity: string }[];
-}
+import type { DashboardData } from "@/lib/types";
 
 const BREAKDOWN_COLORS = ["#7c3aed", "#06b6d4", "#f97316", "#10b981"];
 

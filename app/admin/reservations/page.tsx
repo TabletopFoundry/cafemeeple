@@ -33,7 +33,7 @@ type TableOption = Pick<Table, "id" | "name" | "capacity">;
 type StatusVariant = "success" | "warning" | "danger" | "info" | "default";
 
 export default function ReservationsPage() {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [showAll, setShowAll] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingReservation, setEditingReservation] = useState<ReservationRecord | null>(null);
@@ -178,7 +178,7 @@ export default function ReservationsPage() {
           />
           <button
             onClick={() => {
-              setSelectedDate(new Date().toISOString().split("T")[0]);
+              setSelectedDate(new Date().toISOString().slice(0, 10));
               setShowAll(false);
             }}
             className="px-3 py-2 text-sm text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"

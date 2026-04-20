@@ -84,7 +84,10 @@ export default function CheckoutForm({
                   case "Enter":
                     e.preventDefault();
                     if (activeIndex >= 0 && activeIndex < options.length) {
-                      onGameSelect(options[activeIndex].id, options[activeIndex].title);
+                      const selected = options[activeIndex];
+                      if (selected) {
+                        onGameSelect(selected.id, selected.title);
+                      }
                     }
                     break;
                   case "Escape":

@@ -25,16 +25,16 @@ interface ReservationCalendarProps {
   statusVariant: (status: string) => StatusVariant;
 }
 
-function getWeekDates(selectedDate: string) {
+function getWeekDates(selectedDate: string): string[] {
   const date = new Date(selectedDate + "T12:00:00");
   const day = date.getDay();
   const monday = new Date(date);
   monday.setDate(date.getDate() - (day === 0 ? 6 : day - 1));
-  const dates = [];
+  const dates: string[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    dates.push(d.toISOString().split("T")[0]);
+    dates.push(d.toISOString().slice(0, 10));
   }
   return dates;
 }
@@ -51,7 +51,7 @@ export default function ReservationCalendar({
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
       <div className="grid grid-cols-7 border-b border-gray-200">
         {weekDates.map((date) => {
-          const isToday = date === new Date().toISOString().split("T")[0];
+          const isToday = date === new Date().toISOString().slice(0, 10);
           const isSelected = date === selectedDate;
           const dateReservations = reservations.filter((r) => r.reservation_date === date);
           return (

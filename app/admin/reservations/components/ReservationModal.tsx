@@ -51,9 +51,9 @@ export default function ReservationModal({
     guest_email: reservation?.guest_email || "",
     guest_phone: reservation?.guest_phone || "",
     party_size: reservation?.party_size || 2,
-    table_id: reservation?.table_id || "",
-    reservation_date: reservation?.reservation_date || new Date().toISOString().split("T")[0],
-    reservation_time: reservation?.reservation_time || "18:00",
+    table_id: reservation?.table_id ?? "",
+    reservation_date: reservation?.reservation_date ?? new Date().toISOString().slice(0, 10),
+    reservation_time: reservation?.reservation_time ?? "18:00",
     duration_minutes: reservation?.duration_minutes || 120,
     notes: reservation?.notes || "",
   });

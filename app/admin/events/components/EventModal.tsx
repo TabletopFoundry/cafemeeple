@@ -16,7 +16,7 @@ export default function EventModal({ event, eventTypes, onClose, onSaved }: Even
   const [form, setForm] = useState({
     title: event?.title || "",
     description: event?.description || "",
-    event_date: event?.event_date || new Date().toISOString().split("T")[0],
+    event_date: event?.event_date || new Date().toISOString().slice(0, 10),
     start_time: event?.start_time || "18:00",
     end_time: event?.end_time || "22:00",
     capacity: event?.capacity || 20,

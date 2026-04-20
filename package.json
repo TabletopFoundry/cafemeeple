@@ -1,12 +1,17 @@
 {
-  "name": "05-cafemeeple",
+  "name": "cafemeeple",
   "version": "0.1.0",
   "private": true,
+  "description": "Board game café management SaaS — game library, tables, sessions, reservations, events & analytics",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "next": "16.2.6",

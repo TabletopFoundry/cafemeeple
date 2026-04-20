@@ -1,35 +1,45 @@
 # ☕ CaféMeeple — Board Game Café Management SaaS
 
+> Your café's operating system, from shelf to table.
+
 A purpose-built management platform for board game cafés. Manage your game library, tables, cover charges, reservations, events, and analytics in one place.
 
-## Features
+---
 
-- **Landing Page** — Marketing page for café owners with pricing, features, and testimonials
-- **Admin Dashboard** — Today's stats, revenue charts (recharts), popular games, alerts
-- **Game Library** — 100+ seeded board games, search/filter, condition tracking, add/edit/remove, replacement flagging
-- **Tables & Sessions** — Visual table map, check-in/check-out, active sessions with running totals, cover charges
-- **Game Checkout** — Assign games to table sessions, return flow with condition logging, checkout history
-- **Reservations** — Calendar and list views, create/edit reservations, status management (confirm, no-show, cancel)
-- **Events & RSVPs** — Create events, RSVP tracking with capacity management, event types
+## ✨ Features
 
-## Tech Stack
+- **🏠 Landing Page** — Marketing page for café owners with pricing, features, and testimonials
+- **📊 Admin Dashboard** — Today's stats, revenue charts (recharts), popular games, alerts
+- **🎲 Game Library** — 100+ seeded board games, search/filter, condition tracking, add/edit/remove, replacement flagging
+- **🪑 Tables & Sessions** — Visual table map, check-in/check-out, active sessions with running totals, cover charges
+- **🔄 Game Checkout** — Assign games to table sessions, return flow with condition logging, checkout history
+- **📅 Reservations** — Calendar and list views, create/edit reservations, status management (confirm, no-show, cancel)
+- **🎉 Events & RSVPs** — Create events, RSVP tracking with capacity management, event types
 
-- **Framework**: Next.js 16 with App Router (TypeScript)
-- **Styling**: Tailwind CSS 4
-- **Database**: SQLite via better-sqlite3
-- **Charts**: Recharts
-- **Icons**: Lucide React
+## 🛠 Tech Stack
 
-## Getting Started
+| Layer | Technology |
+|-------|-----------|
+| Framework | [Next.js 16](https://nextjs.org/) with App Router (TypeScript) |
+| Styling | [Tailwind CSS 4](https://tailwindcss.com/) |
+| Database | [SQLite](https://sqlite.org/) via [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) |
+| Charts | [Recharts](https://recharts.org/) |
+| Icons | [Lucide React](https://lucide.dev/) |
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- npm
+- **Node.js** 18+ (recommended: 20 LTS — see `.nvmrc`)
+- **npm** 9+
 
 ### Installation
 
 ```bash
+# If using nvm, switch to the correct Node version
+nvm use
+
+# Install dependencies
 npm install
 ```
 
@@ -50,19 +60,17 @@ The database is automatically created and seeded with sample data on first load:
 - 30 days of mock session/checkout history
 - 4 active sessions for today
 
-### Build
+### Available Scripts
 
-```bash
-npm run build
-```
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Create production build |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint checks |
+| `npm run typecheck` | Run TypeScript type checking |
 
-### Lint
-
-```bash
-npm run lint
-```
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 app/
@@ -88,24 +96,34 @@ app/
 │   └── checkout/               # Game checkout/return
 components/
 ├── Sidebar.tsx                 # Admin navigation sidebar
+├── Modal.tsx                   # Accessible modal with focus trap
+├── Toast.tsx                   # Toast notification system
+├── ErrorBoundary.tsx           # React error boundary
+├── ConfirmDialog.tsx           # Confirmation dialog
 └── ui.tsx                      # Shared UI components
+hooks/
+└── useFetch.ts                 # Generic data fetching hooks
 lib/
 ├── db.ts                       # Database initialization & schema
+├── types.ts                    # Canonical domain types
+├── game-utils.ts               # Game condition utilities
 └── seed.ts                     # Seed data (100+ games, tables, etc.)
 ```
 
-## Database
+## 🗄 Database
 
 SQLite database (`cafemeeple.db`) is created automatically in the project root. It includes:
 
-- **games** — Board game catalog with metadata and condition tracking
-- **tables** — Café tables with capacity and section info
-- **sessions** — Visit sessions with cover charge billing
-- **game_checkouts** — Game-to-session assignment and return tracking
-- **reservations** — Guest reservations with table assignment
-- **events** — Café events (game nights, tournaments, etc.)
-- **rsvps** — Event RSVP tracking
+| Table | Description |
+|-------|-------------|
+| `games` | Board game catalog with metadata and condition tracking |
+| `tables` | Café tables with capacity and section info |
+| `sessions` | Visit sessions with cover charge billing |
+| `game_checkouts` | Game-to-session assignment and return tracking |
+| `reservations` | Guest reservations with table assignment |
+| `events` | Café events (game nights, tournaments, etc.) |
+| `rsvps` | Event RSVP tracking |
 
-## License
+## 📄 License
 
 Private — All rights reserved.
