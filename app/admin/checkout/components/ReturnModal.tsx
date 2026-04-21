@@ -42,18 +42,18 @@ export default function ReturnModal({ checkout, onClose, onReturn }: ReturnModal
             placeholder="Optional notes about game condition..."
           />
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => onReturn(checkout.id, condition, notes)}
-            className="flex-1 bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700"
-          >
-            Return Game
-          </button>
+        <div className="flex gap-3 justify-end">
           <button
             onClick={onClose}
             className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
           >
             Cancel
+          </button>
+          <button
+            onClick={() => onReturn(checkout.id, condition, notes)}
+            className="flex-1 bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700"
+          >
+            Return Game
           </button>
         </div>
       </div>

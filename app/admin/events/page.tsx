@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useFetch } from "@/hooks/useFetch";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { EventItem, Rsvp } from "@/lib/types";
 import EventCard from "./components/EventCard";
 import EventModal from "./components/EventModal";
@@ -14,6 +15,7 @@ import RsvpModal from "./components/RsvpModal";
 const EVENT_TYPES = ["Game Night", "Tournament", "Workshop", "Social", "Family Event", "Special"];
 
 export default function EventsPage() {
+  usePageTitle("Events");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   const [viewingRsvps, setViewingRsvps] = useState<EventItem | null>(null);
@@ -35,7 +37,8 @@ export default function EventsPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await fetch(`/api/events/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete event");
       refresh();
       setDeleteConfirm(null);
       addToast("Event deleted successfully", "success");
@@ -50,8 +53,10 @@ export default function EventsPage() {
     try {
       const res = await fetch(`/api/events/${event.id}/rsvps`);
       if (res.ok) setRsvps(await res.json());
+      else throw new Error("Failed to load RSVPs");
     } catch {
       setRsvps([]);
+      addToast("Failed to load RSVPs", "error");
     }
   };
 

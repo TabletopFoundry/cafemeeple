@@ -1,4 +1,6 @@
 import { getDb } from "@/lib/db";
+import { firstError, validatePositiveInt, validateEnum } from "@/lib/validation";
+import { VALID_EVENT_TYPES, VALID_EVENT_STATUSES } from "@/lib/constants";
 
 export async function GET() {
   try {
@@ -25,6 +27,15 @@ export async function POST(request: Request) {
 
     if (!title || !event_date || !start_time || !end_time) {
       return Response.json({ error: "Title, date, start time, and end time are required" }, { status: 400 });
+    }
+
+    const validationError = firstError(
+      validatePositiveInt(capacity, "capacity"),
+      validateEnum(event_type, "event_type", VALID_EVENT_TYPES),
+      validateEnum(status, "status", VALID_EVENT_STATUSES),
+    );
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
     }
 
     const result = db.prepare(`

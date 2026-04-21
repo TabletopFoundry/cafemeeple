@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import { firstError, validatePositiveInt } from "@/lib/validation";
 
 export async function GET(request: Request) {
   try {
@@ -40,6 +41,14 @@ export async function POST(request: Request) {
 
     if (!guest_name || !reservation_date || !reservation_time) {
       return Response.json({ error: "Guest name, date, and time are required" }, { status: 400 });
+    }
+
+    const validationError = firstError(
+      validatePositiveInt(party_size, "party_size"),
+      validatePositiveInt(duration_minutes, "duration_minutes"),
+    );
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
     }
 
     const result = db.prepare(`

@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { ErrorMessage, LoadingCard } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import { useMultiFetch } from "@/hooks/useFetch";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import type { Session, Table } from "@/lib/types";
 import CheckInModal from "./components/CheckInModal";
 import CheckoutModal from "./components/CheckoutModal";
@@ -12,6 +13,7 @@ import FloorMap from "./components/FloorMap";
 import TableList from "./components/TableList";
 
 export default function TablesPage() {
+  usePageTitle("Tables");
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);

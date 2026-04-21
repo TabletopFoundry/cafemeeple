@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import { validatePositiveInt } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -36,6 +37,11 @@ export async function POST(request: Request) {
 
     if (!name) {
       return Response.json({ error: "Name is required" }, { status: 400 });
+    }
+
+    const capacityError = validatePositiveInt(capacity, "capacity");
+    if (capacityError) {
+      return Response.json({ error: capacityError }, { status: 400 });
     }
 
     const result = db.prepare(`

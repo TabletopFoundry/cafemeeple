@@ -17,14 +17,28 @@ export default function RsvpModal({ event, rsvps, onClose, onAddRsvp }: RsvpModa
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [partySize, setPartySize] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleAdd = () => {
-    if (!name) return;
-    onAddRsvp(event.id, name, email, partySize);
-    setName("");
-    setEmail("");
-    setPartySize(1);
-    setShowAdd(false);
+  const handleAdd = async () => {
+    const errs: Record<string, string> = {};
+    if (!name.trim()) errs.name = "Name is required";
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Invalid email format";
+    if (partySize < 1) errs.partySize = "Party size must be at least 1";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setSaving(true);
+    try {
+      await onAddRsvp(event.id, name, email, partySize);
+      setName("");
+      setEmail("");
+      setPartySize(1);
+      setShowAdd(false);
+      setErrors({});
+    } finally {
+      setSaving(false);
+    }
   };
 
   const totalAttendees = rsvps.reduce((sum, rsvp) => sum + rsvp.party_size, 0);
@@ -45,16 +59,24 @@ export default function RsvpModal({ event, rsvps, onClose, onAddRsvp }: RsvpModa
               type="text"
               placeholder="Guest name *"
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              onChange={(e) => {
+                setName(e.target.value);
+                setErrors((prev) => { const next = { ...prev }; delete next.name; return next; });
+              }}
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 ${errors.name ? "border-red-400" : "border-gray-200"}`}
             />
+            {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
             <input
               type="email"
               placeholder="Email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErrors((prev) => { const next = { ...prev }; delete next.email; return next; });
+              }}
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 ${errors.email ? "border-red-400" : "border-gray-200"}`}
             />
+            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
             <div className="flex gap-2">
               <input
                 type="number"
@@ -64,8 +86,12 @@ export default function RsvpModal({ event, rsvps, onClose, onAddRsvp }: RsvpModa
                 onChange={(e) => setPartySize(parseInt(e.target.value) || 1)}
                 className="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
-              <button onClick={handleAdd} className="flex-1 bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700">
-                Add RSVP
+              <button
+                onClick={handleAdd}
+                disabled={saving}
+                className="flex-1 bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50"
+              >
+                {saving ? "Adding..." : "Add RSVP"}
               </button>
             </div>
           </div>

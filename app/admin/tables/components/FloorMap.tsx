@@ -2,6 +2,7 @@
 
 import { Clock3, CreditCard, Users } from "lucide-react";
 import { Badge } from "@/components/ui";
+import { formatElapsed } from "@/lib/date-utils";
 import type { Session, Table } from "@/lib/types";
 
 interface FloorMapProps {
@@ -88,12 +89,4 @@ export default function FloorMap({
       </div>
     </div>
   );
-}
-
-function formatElapsed(startedAt: string) {
-  const start = new Date(startedAt.replace(" ", "T"));
-  const diffMs = Date.now() - start.getTime();
-  const hours = Math.floor(diffMs / 3600000);
-  const minutes = Math.floor((diffMs % 3600000) / 60000);
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }

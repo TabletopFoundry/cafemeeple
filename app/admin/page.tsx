@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -14,47 +13,15 @@ import {
   YAxis,
 } from "recharts";
 import { Badge, ErrorMessage, LoadingCard, StatCard } from "@/components/ui";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { useFetch } from "@/hooks/useFetch";
 import type { DashboardData } from "@/lib/types";
 
 const BREAKDOWN_COLORS = ["#7c3aed", "#06b6d4", "#f97316", "#10b981"];
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch("/api/dashboard");
-        if (!response.ok) {
-          throw new Error("Failed to load dashboard data");
-        }
-        const json = (await response.json()) as DashboardData;
-        if (!cancelled) {
-          setData(json);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unknown error");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshKey]);
+  usePageTitle("Dashboard");
+  const { data, loading, error, refresh } = useFetch<DashboardData>("/api/dashboard");
 
   if (loading) {
     return (
@@ -74,14 +41,14 @@ export default function DashboardPage() {
   }
 
   if (error) {
-    return <ErrorMessage message={error} onRetry={() => setRefreshKey((current) => current + 1)} />;
+    return <ErrorMessage message={error} onRetry={refresh} />;
   }
 
   if (!data) {
     return (
       <ErrorMessage
         message="Dashboard data is unavailable. The server returned an empty response."
-        onRetry={() => setRefreshKey((current) => current + 1)}
+        onRetry={refresh}
       />
     );
   }
@@ -96,7 +63,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <button
-          onClick={() => setRefreshKey((current) => current + 1)}
+          onClick={refresh}
           className="w-fit rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
         >
           Refresh dashboard

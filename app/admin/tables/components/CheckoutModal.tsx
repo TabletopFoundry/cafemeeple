@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LogOut } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import Modal from "@/components/Modal";
+import { formatElapsed } from "@/lib/date-utils";
 import type { Session } from "@/lib/types";
 
 interface CheckoutModalProps {
@@ -78,14 +79,6 @@ export default function CheckoutModal({
       )}
     </>
   );
-}
-
-function formatElapsed(startedAt: string) {
-  const start = new Date(startedAt.replace(" ", "T"));
-  const diffMs = Date.now() - start.getTime();
-  const hours = Math.floor(diffMs / 3600000);
-  const minutes = Math.floor((diffMs % 3600000) / 60000);
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
 function SummaryRow({

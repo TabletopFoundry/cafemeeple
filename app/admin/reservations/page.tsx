@@ -6,6 +6,7 @@ import { Plus, CalendarDays } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useMultiFetch } from "@/hooks/useFetch";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import type { Reservation, Table } from "@/lib/types";
 import ReservationCalendar from "./components/ReservationCalendar";
 import ReservationList from "./components/ReservationList";
@@ -33,6 +34,7 @@ type TableOption = Pick<Table, "id" | "name" | "capacity">;
 type StatusVariant = "success" | "warning" | "danger" | "info" | "default";
 
 export default function ReservationsPage() {
+  usePageTitle("Reservations");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [showAll, setShowAll] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -55,7 +57,8 @@ export default function ReservationsPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await fetch(`/api/reservations/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/reservations/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete reservation");
       setDeleteConfirm(null);
       refresh();
       addToast("Reservation cancelled", "success");
@@ -67,11 +70,12 @@ export default function ReservationsPage() {
 
   const handleStatusChange = async (id: number, status: string) => {
     try {
-      await fetch(`/api/reservations/${id}`, {
+      const res = await fetch(`/api/reservations/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
+      if (!res.ok) throw new Error("Failed to update reservation");
       refresh();
     } catch {
       addToast("Failed to update reservation", "error");

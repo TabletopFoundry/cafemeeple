@@ -5,6 +5,7 @@ import { Grid2X2, List, Plus } from "lucide-react";
 import { EmptyState, ErrorMessage, LoadingSpinner } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import type { Game } from "@/lib/types";
 import GameFilterBar from "./components/GameFilterBar";
 import GameGrid from "./components/GameGrid";
@@ -14,6 +15,7 @@ import GameModal from "./components/GameModal";
 const CATEGORIES = ["Strategy", "Family", "Party", "Cooperative", "Card Game", "Abstract", "Thematic", "Word Game"];
 
 export default function GamesPage() {
+  usePageTitle("Games");
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

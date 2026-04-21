@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
-import { conditionScoreForLabel } from "@/lib/game-utils";
+import { conditionScoreForLabel, CONDITION_LABELS } from "@/lib/game-utils";
+import { firstError, validatePositiveInt, validateRange, validateEnum } from "@/lib/validation";
 import type { Game } from "@/lib/types";
 
 type GameRow = Pick<
@@ -51,6 +52,19 @@ export async function PUT(
     const existing = db.prepare("SELECT * FROM games WHERE id = ?").get(id) as GameRow | undefined;
     if (!existing) {
       return Response.json({ error: "Game not found" }, { status: 404 });
+    }
+
+    const validationError = firstError(
+      validatePositiveInt(body.min_players, "min_players"),
+      validatePositiveInt(body.max_players, "max_players"),
+      validatePositiveInt(body.play_time_minutes, "play_time_minutes"),
+      validateRange(body.complexity, "complexity", 0, 5),
+      validatePositiveInt(body.copies_total, "copies_total"),
+      validateEnum(body.condition, "condition", CONDITION_LABELS),
+      validatePositiveInt(body.replacement_threshold, "replacement_threshold"),
+    );
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
     }
 
     const condition = body.condition ?? existing.condition;

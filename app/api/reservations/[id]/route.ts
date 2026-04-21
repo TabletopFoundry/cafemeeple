@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import { firstError, validatePositiveInt } from "@/lib/validation";
 
 export async function PUT(
   request: Request,
@@ -17,6 +18,14 @@ export async function PUT(
       "duration_minutes", "status", "notes",
     ];
 
+    const validationError = firstError(
+      validatePositiveInt(body.party_size, "party_size"),
+      validatePositiveInt(body.duration_minutes, "duration_minutes"),
+    );
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
+    }
+
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         fields.push(`${field} = ?`);
@@ -29,7 +38,10 @@ export async function PUT(
     }
 
     values.push(id);
-    db.prepare(`UPDATE reservations SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+    const result = db.prepare(`UPDATE reservations SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+    if (result.changes === 0) {
+      return Response.json({ error: "Reservation not found" }, { status: 404 });
+    }
 
     const reservation = db.prepare("SELECT * FROM reservations WHERE id = ?").get(id);
     return Response.json(reservation);
@@ -46,7 +58,10 @@ export async function DELETE(
   const { id } = await params;
   try {
     const db = getDb();
-    db.prepare("DELETE FROM reservations WHERE id = ?").run(id);
+    const result = db.prepare("DELETE FROM reservations WHERE id = ?").run(id);
+    if (result.changes === 0) {
+      return Response.json({ error: "Reservation not found" }, { status: 404 });
+    }
     return Response.json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

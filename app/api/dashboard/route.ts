@@ -47,28 +47,40 @@ export async function GET() {
       )
       .get(today) as { count: number };
 
-    const revenueBreakdown = db
+    const coverCharges = db
       .prepare(
-        `
-          SELECT 'Cover Charges' as category, ROUND(COALESCE(SUM(total_charge), 0), 2) as value
-          FROM sessions
-          WHERE started_at >= date('now', '-30 days') AND status = 'completed'
-          UNION ALL
-          SELECT 'Food & Beverage' as category, ROUND(COALESCE(SUM(party_size * ${DASHBOARD_ESTIMATES.avgFoodBeveragePerPerson}), 0), 2) as value
-          FROM sessions
-          WHERE started_at >= date('now', '-30 days')
-          UNION ALL
-          SELECT 'Retail' as category, ROUND(COALESCE(COUNT(*) * ${DASHBOARD_ESTIMATES.avgRetailPerCheckout}, 0), 2) as value
-          FROM game_checkouts
-          WHERE checked_out_at >= date('now', '-30 days')
-          UNION ALL
-          SELECT 'Events' as category, ROUND(COALESCE(SUM(r.party_size) * ${DASHBOARD_ESTIMATES.avgEventTicketPerPerson}, 0), 2) as value
-          FROM rsvps r
-          JOIN events e ON e.id = r.event_id
-          WHERE e.event_date >= date('now', '-30 days')
-        `,
+        `SELECT 'Cover Charges' as category, ROUND(COALESCE(SUM(total_charge), 0), 2) as value
+         FROM sessions
+         WHERE started_at >= date('now', '-30 days') AND status = 'completed'`
       )
-      .all() as { category: string; value: number }[];
+      .get() as { category: string; value: number };
+
+    const foodBeverage = db
+      .prepare(
+        `SELECT 'Food & Beverage' as category, ROUND(COALESCE(SUM(party_size * ?), 0), 2) as value
+         FROM sessions
+         WHERE started_at >= date('now', '-30 days')`
+      )
+      .get(DASHBOARD_ESTIMATES.avgFoodBeveragePerPerson) as { category: string; value: number };
+
+    const retail = db
+      .prepare(
+        `SELECT 'Retail' as category, ROUND(COALESCE(COUNT(*) * ?, 0), 2) as value
+         FROM game_checkouts
+         WHERE checked_out_at >= date('now', '-30 days')`
+      )
+      .get(DASHBOARD_ESTIMATES.avgRetailPerCheckout) as { category: string; value: number };
+
+    const events = db
+      .prepare(
+        `SELECT 'Events' as category, ROUND(COALESCE(SUM(r.party_size) * ?, 0), 2) as value
+         FROM rsvps r
+         JOIN events e ON e.id = r.event_id
+         WHERE e.event_date >= date('now', '-30 days')`
+      )
+      .get(DASHBOARD_ESTIMATES.avgEventTicketPerPerson) as { category: string; value: number };
+
+    const revenueBreakdown = [coverCharges, foodBeverage, retail, events];
 
     const popularGamesWeek = db
       .prepare(

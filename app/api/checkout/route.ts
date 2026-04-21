@@ -54,14 +54,14 @@ export async function POST(request: Request) {
       return Response.json({ error: "Select an active table session first." }, { status: 400 });
     }
 
-    const game = db.prepare("SELECT copies_available FROM games WHERE id = ?").get(game_id) as
-      | { copies_available: number }
-      | undefined;
-    if (!game || game.copies_available <= 0) {
-      return Response.json({ error: "Game not available" }, { status: 400 });
-    }
-
     const checkoutTx = db.transaction(() => {
+      const game = db.prepare("SELECT copies_available FROM games WHERE id = ?").get(game_id) as
+        | { copies_available: number }
+        | undefined;
+      if (!game || game.copies_available <= 0) {
+        throw new Error("GAME_UNAVAILABLE");
+      }
+
       const result = db.prepare(`
         INSERT INTO game_checkouts (session_id, game_id)
         VALUES (?, ?)
@@ -72,7 +72,15 @@ export async function POST(request: Request) {
       return result;
     });
 
-    const result = checkoutTx();
+    let result;
+    try {
+      result = checkoutTx();
+    } catch (txError) {
+      if (txError instanceof Error && txError.message === "GAME_UNAVAILABLE") {
+        return Response.json({ error: "Game not available" }, { status: 400 });
+      }
+      throw txError;
+    }
 
     const checkout = db.prepare(`
       SELECT gc.*, g.title as game_title

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ErrorMessage, EmptyState, LoadingCard } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import { useMultiFetch } from "@/hooks/useFetch";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import type { Checkout, GameSummary, Session } from "@/lib/types";
 import CheckoutForm from "./components/CheckoutForm";
 import CheckoutHistory from "./components/CheckoutHistory";
@@ -22,6 +23,7 @@ type CheckoutPageData = {
 };
 
 export default function CheckoutPage() {
+  usePageTitle("Checkout");
   const [selectedSession, setSelectedSession] = useState<number | null>(null);
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
   const [gameSearch, setGameSearch] = useState("");

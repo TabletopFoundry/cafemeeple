@@ -1,4 +1,6 @@
 import { getDb } from "@/lib/db";
+import { firstError, validatePositiveInt, validateEnum } from "@/lib/validation";
+import { VALID_EVENT_TYPES, VALID_EVENT_STATUSES } from "@/lib/constants";
 
 export async function PUT(
   request: Request,
@@ -16,6 +18,15 @@ export async function PUT(
       "capacity", "event_type", "status",
     ];
 
+    const validationError = firstError(
+      validatePositiveInt(body.capacity, "capacity"),
+      validateEnum(body.event_type, "event_type", VALID_EVENT_TYPES),
+      validateEnum(body.status, "status", VALID_EVENT_STATUSES),
+    );
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
+    }
+
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         fields.push(`${field} = ?`);
@@ -28,7 +39,10 @@ export async function PUT(
     }
 
     values.push(id);
-    db.prepare(`UPDATE events SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+    const result = db.prepare(`UPDATE events SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+    if (result.changes === 0) {
+      return Response.json({ error: "Event not found" }, { status: 404 });
+    }
 
     const event = db.prepare("SELECT * FROM events WHERE id = ?").get(id);
     return Response.json(event);
@@ -46,7 +60,10 @@ export async function DELETE(
   try {
     const db = getDb();
     db.prepare("DELETE FROM rsvps WHERE event_id = ?").run(id);
-    db.prepare("DELETE FROM events WHERE id = ?").run(id);
+    const result = db.prepare("DELETE FROM events WHERE id = ?").run(id);
+    if (result.changes === 0) {
+      return Response.json({ error: "Event not found" }, { status: 404 });
+    }
     return Response.json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

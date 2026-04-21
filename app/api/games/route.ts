@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
-import { conditionScoreForLabel } from "@/lib/game-utils";
+import { conditionScoreForLabel, CONDITION_LABELS } from "@/lib/game-utils";
+import { firstError, validatePositiveInt, validateRange, validateEnum } from "@/lib/validation";
 
 export async function GET(request: Request) {
   try {
@@ -104,6 +105,19 @@ export async function POST(request: Request) {
 
     if (!title) {
       return Response.json({ error: "Title is required" }, { status: 400 });
+    }
+
+    const validationError = firstError(
+      validatePositiveInt(min_players, "min_players"),
+      validatePositiveInt(max_players, "max_players"),
+      validatePositiveInt(play_time_minutes, "play_time_minutes"),
+      validateRange(complexity, "complexity", 0, 5),
+      validatePositiveInt(copies_total, "copies_total"),
+      validateEnum(condition, "condition", CONDITION_LABELS),
+      validatePositiveInt(replacement_threshold, "replacement_threshold"),
+    );
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
     }
 
     const score = condition_score ?? conditionScoreForLabel(condition || "Good");

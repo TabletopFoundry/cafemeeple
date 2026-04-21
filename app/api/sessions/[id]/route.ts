@@ -34,6 +34,10 @@ export async function PUT(
       return Response.json({ error: "Session not found" }, { status: 404 });
     }
 
+    if ((session as { status?: string }).status !== "active") {
+      return Response.json({ error: "Session is already closed" }, { status: 409 });
+    }
+
     const activeGames = db
       .prepare("SELECT COUNT(*) as count FROM game_checkouts WHERE session_id = ? AND returned_at IS NULL")
       .get(id) as { count: number };
@@ -43,18 +47,29 @@ export async function PUT(
         ? session.cover_charge_per_person
         : session.party_size * session.cover_charge_per_person;
 
-    db.prepare(
-      `UPDATE sessions SET status = 'completed', ended_at = datetime('now'), total_charge = ? WHERE id = ?`,
-    ).run(total, id);
+    const closeTx = db.transaction(() => {
+      db.prepare(
+        `UPDATE sessions SET status = 'completed', ended_at = datetime('now'), total_charge = ? WHERE id = ?`,
+      ).run(total, id);
+      db.prepare("UPDATE tables SET status = 'available' WHERE id = ?").run(session.table_id);
 
-    db.prepare("UPDATE tables SET status = 'available' WHERE id = ?").run(session.table_id);
-    db.prepare(
-      `
-        UPDATE game_checkouts
-        SET returned_at = datetime('now'), return_condition = COALESCE(return_condition, 'Good')
-        WHERE session_id = ? AND returned_at IS NULL
-      `,
-    ).run(id);
+      // Get unreturned games before marking them returned
+      const unreturned = db.prepare(
+        "SELECT game_id FROM game_checkouts WHERE session_id = ? AND returned_at IS NULL"
+      ).all(id) as { game_id: number }[];
+
+      db.prepare(
+        `UPDATE game_checkouts SET returned_at = datetime('now'), return_condition = COALESCE(return_condition, 'Good') WHERE session_id = ? AND returned_at IS NULL`,
+      ).run(id);
+
+      // Restore inventory for each auto-returned game
+      for (const { game_id } of unreturned) {
+        db.prepare(
+          "UPDATE games SET copies_available = copies_available + 1, updated_at = datetime('now') WHERE id = ?"
+        ).run(game_id);
+      }
+    });
+    closeTx();
 
     return Response.json({
       sessionId: id,

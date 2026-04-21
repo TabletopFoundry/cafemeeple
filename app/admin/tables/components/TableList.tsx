@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui";
+import { formatElapsed } from "@/lib/date-utils";
 import type { Session, Table } from "@/lib/types";
 
 interface TableListProps {
@@ -78,12 +79,4 @@ export default function TableList({ tables, sessions, onSelectSession }: TableLi
       </div>
     </div>
   );
-}
-
-function formatElapsed(startedAt: string) {
-  const start = new Date(startedAt.replace(" ", "T"));
-  const diffMs = Date.now() - start.getTime();
-  const hours = Math.floor(diffMs / 3600000);
-  const minutes = Math.floor((diffMs % 3600000) / 60000);
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }

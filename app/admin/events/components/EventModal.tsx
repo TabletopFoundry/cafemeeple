@@ -160,20 +160,20 @@ export default function EventModal({ event, eventTypes, onClose, onSaved }: Even
             </select>
           </div>
         )}
-        <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50"
-          >
-            {saving ? "Saving..." : event ? "Update Event" : "Create Event"}
-          </button>
+        <div className="flex justify-end gap-3 pt-2">
           <button
             type="button"
             onClick={onClose}
             className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
           >
             Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="flex-1 bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : event ? "Update Event" : "Create Event"}
           </button>
         </div>
       </form>

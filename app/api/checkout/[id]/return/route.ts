@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
-import { conditionScoreForLabel } from "@/lib/game-utils";
+import { conditionScoreForLabel, CONDITION_LABELS } from "@/lib/game-utils";
+import { validateEnum } from "@/lib/validation";
 
 export async function POST(
   request: Request,
@@ -10,6 +11,11 @@ export async function POST(
     const db = getDb();
     const body = await request.json();
     const { return_condition, notes } = body;
+
+    const conditionError = validateEnum(return_condition, "return_condition", CONDITION_LABELS);
+    if (conditionError) {
+      return Response.json({ error: conditionError }, { status: 400 });
+    }
 
     const checkout = db.prepare("SELECT * FROM game_checkouts WHERE id = ?").get(id) as
       | { game_id: number; returned_at: string | null }

@@ -252,7 +252,7 @@ export default function LandingPage() {
               <span className="text-xl">☕</span>
               <span className="text-white font-semibold">CaféMeeple</span>
             </div>
-            <p className="text-sm">© 2024 CaféMeeple. All rights reserved.</p>
+            <p className="text-sm">© {new Date().getFullYear()} CaféMeeple. All rights reserved.</p>
           </div>
         </div>
       </footer>

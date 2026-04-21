@@ -1,4 +1,7 @@
 import { getDb } from "@/lib/db";
+import { firstError, validatePositiveInt, validateNonNegativeNumber, validateEnum } from "@/lib/validation";
+
+const VALID_RATE_TYPES = ["per_person", "per_table"] as const;
 
 export async function GET(request: Request) {
   try {
@@ -52,6 +55,15 @@ export async function POST(request: Request) {
       return Response.json({ error: "Table ID is required" }, { status: 400 });
     }
 
+    const validationError = firstError(
+      validatePositiveInt(party_size, "party_size"),
+      validateNonNegativeNumber(cover_charge_per_person, "cover_charge_per_person"),
+      validateEnum(rate_type, "rate_type", VALID_RATE_TYPES),
+    );
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
+    }
+
     const table = db.prepare("SELECT id, capacity FROM tables WHERE id = ?").get(table_id) as
       | { id: number; capacity: number }
       | undefined;
@@ -67,32 +79,32 @@ export async function POST(request: Request) {
       );
     }
 
-    const activeSession = db
-      .prepare("SELECT id FROM sessions WHERE table_id = ? AND status = 'active'")
-      .get(table_id);
-    if (activeSession) {
-      return Response.json({ error: "Table is already occupied" }, { status: 400 });
-    }
-
-    const hasUpcomingReservation = db
-      .prepare(
-        `
-          SELECT id
-          FROM reservations
-          WHERE table_id = ?
-            AND reservation_date = date('now')
-            AND status IN ('confirmed', 'pending')
-          LIMIT 1
-        `,
-      )
-      .get(table_id);
-
-    if (hasUpcomingReservation) {
-      return Response.json({ error: "This table is reserved for a guest today." }, { status: 400 });
-    }
-
     const billingType = rate_type === "per_table" ? "per_table" : "per_person";
     const sessionTx = db.transaction(() => {
+      const activeSession = db
+        .prepare("SELECT id FROM sessions WHERE table_id = ? AND status = 'active'")
+        .get(table_id);
+      if (activeSession) {
+        throw new Error("TABLE_OCCUPIED");
+      }
+
+      const hasUpcomingReservation = db
+        .prepare(
+          `
+            SELECT id
+            FROM reservations
+            WHERE table_id = ?
+              AND reservation_date = date('now')
+              AND status IN ('confirmed', 'pending')
+            LIMIT 1
+          `,
+        )
+        .get(table_id);
+
+      if (hasUpcomingReservation) {
+        throw new Error("TABLE_RESERVED");
+      }
+
       const result = db.prepare(`
         INSERT INTO sessions (table_id, party_name, party_size, rate_type, cover_charge_per_person)
         VALUES (?, ?, ?, ?, ?)
@@ -103,7 +115,18 @@ export async function POST(request: Request) {
       return result;
     });
 
-    const result = sessionTx();
+    let result;
+    try {
+      result = sessionTx();
+    } catch (txError) {
+      if (txError instanceof Error && txError.message === "TABLE_OCCUPIED") {
+        return Response.json({ error: "Table is already occupied" }, { status: 400 });
+      }
+      if (txError instanceof Error && txError.message === "TABLE_RESERVED") {
+        return Response.json({ error: "This table is reserved for a guest today." }, { status: 400 });
+      }
+      throw txError;
+    }
 
     const session = db.prepare(`
       SELECT

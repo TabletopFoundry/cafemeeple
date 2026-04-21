@@ -34,23 +34,39 @@ export async function POST(
       return Response.json({ error: "Event not found" }, { status: 404 });
     }
 
-    const currentRsvps = db.prepare("SELECT SUM(party_size) as total FROM rsvps WHERE event_id = ?").get(id) as { total: number | null };
-    const currentTotal = currentRsvps.total || 0;
     const newPartySize = party_size || 1;
 
-    if (currentTotal + newPartySize > event.capacity) {
-      return Response.json({ error: "Event is at capacity" }, { status: 400 });
+    const rsvpTx = db.transaction(() => {
+      const currentRsvps = db.prepare(
+        "SELECT SUM(party_size) as total FROM rsvps WHERE event_id = ?"
+      ).get(id) as { total: number | null };
+      const currentTotal = currentRsvps.total ?? 0;
+
+      if (currentTotal + newPartySize > event.capacity) {
+        throw new Error("CAPACITY_EXCEEDED");
+      }
+
+      const result = db.prepare(`
+        INSERT INTO rsvps (event_id, guest_name, guest_email, party_size)
+        VALUES (?, ?, ?, ?)
+      `).run(id, guest_name, guest_email || "", newPartySize);
+
+      db.prepare("UPDATE events SET rsvp_count = ? WHERE id = ?")
+        .run(currentTotal + newPartySize, id);
+
+      return result;
+    });
+
+    try {
+      const result = rsvpTx();
+      const rsvp = db.prepare("SELECT * FROM rsvps WHERE id = ?").get(result.lastInsertRowid);
+      return Response.json(rsvp, { status: 201 });
+    } catch (txError) {
+      if (txError instanceof Error && txError.message === "CAPACITY_EXCEEDED") {
+        return Response.json({ error: "Event is at capacity" }, { status: 400 });
+      }
+      throw txError;
     }
-
-    const result = db.prepare(`
-      INSERT INTO rsvps (event_id, guest_name, guest_email, party_size)
-      VALUES (?, ?, ?, ?)
-    `).run(id, guest_name, guest_email || "", newPartySize);
-
-    db.prepare("UPDATE events SET rsvp_count = ? WHERE id = ?").run(currentTotal + newPartySize, id);
-
-    const rsvp = db.prepare("SELECT * FROM rsvps WHERE id = ?").get(result.lastInsertRowid);
-    return Response.json(rsvp, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return Response.json({ error: message }, { status: 500 });
