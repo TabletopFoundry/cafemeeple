@@ -1,3 +1,12 @@
+/**
+ * Shared UI primitives used across the admin dashboard.
+ *
+ * These are simple, reusable presentational components — spinners, empty
+ * states, stat cards, badges, etc. They carry no domain logic.
+ *
+ * @module ui
+ */
+
 export function LoadingSpinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const sizeClasses = {
     sm: "h-4 w-4",
@@ -14,15 +23,17 @@ export function LoadingSpinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   );
 }
 
+/** Skeleton placeholder card shown while content is loading. */
 export function LoadingCard() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse" aria-hidden="true">
       <div className="h-4 bg-gray-200 rounded w-1/3 mb-4" />
       <div className="h-8 bg-gray-200 rounded w-1/2" />
     </div>
   );
 }
 
+/** Friendly placeholder shown when a list or section has no data. */
 export function EmptyState({
   icon,
   title,
@@ -36,7 +47,7 @@ export function EmptyState({
 }) {
   return (
     <div className="text-center py-12">
-      <div className="text-4xl mb-4">{icon}</div>
+      <div className="text-4xl mb-4" aria-hidden="true">{icon}</div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
       <p className="text-gray-500 mb-6 max-w-md mx-auto">{description}</p>
       {action}
@@ -44,6 +55,7 @@ export function EmptyState({
   );
 }
 
+/** Inline error message with an optional retry button. */
 export function ErrorMessage({
   message,
   onRetry,
@@ -52,11 +64,12 @@ export function ErrorMessage({
   onRetry?: () => void;
 }) {
   return (
-    <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+    <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700" role="alert">
       <p className="font-medium">Error</p>
       <p className="text-sm mt-1">{message}</p>
       {onRetry && (
         <button
+          type="button"
           onClick={onRetry}
           className="mt-3 text-sm bg-red-100 hover:bg-red-200 px-3 py-1 rounded-lg transition-colors"
         >
@@ -67,6 +80,7 @@ export function ErrorMessage({
   );
 }
 
+/** Key metric card used on the admin dashboard. */
 export function StatCard({
   title,
   value,
@@ -92,7 +106,7 @@ export function StatCard({
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm font-medium text-gray-500">{title}</span>
-        <span className={`text-xl p-2 rounded-lg ${colorClasses[color]}`}>
+        <span className={`text-xl p-2 rounded-lg ${colorClasses[color]}`} aria-hidden="true">
           {icon}
         </span>
       </div>
@@ -102,6 +116,7 @@ export function StatCard({
   );
 }
 
+/** Small coloured pill for status indicators, categories, etc. */
 export function Badge({
   children,
   variant = "default",

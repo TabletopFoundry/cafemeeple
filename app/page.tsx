@@ -1,4 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "CaféMeeple — Board Game Café Management SaaS",
+  description:
+    "The all-in-one platform for managing your board game café: game library, tables, cover charges, reservations, events, and analytics. No more spreadsheets or guesswork.",
+  openGraph: {
+    title: "CaféMeeple — Board Game Café Management",
+    description:
+      "Manage your game library, tables, reservations, and events in one purpose-built platform for board game cafés.",
+    type: "website",
+    siteName: "CaféMeeple",
+  },
+};
 
 const FEATURES = [
   {
