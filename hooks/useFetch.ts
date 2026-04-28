@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 /**
  * Return type for the {@link useFetch} hook.
@@ -26,16 +26,28 @@ export interface UseFetchResult<T> {
  * @template T — The expected shape of the response JSON.
  * @param url  - Absolute or relative URL to fetch.
  * @param deps - Additional reactive dependencies that trigger a re-fetch.
+ * @param options - Optional configuration.
+ * @param options.debounceMs - Delay in milliseconds before issuing the request.
+ *   Useful for search inputs where rapid changes should not trigger a fetch per keystroke.
  *
  * @example
  * const { data, loading, error, refresh } = useFetch<Game[]>("/api/games");
+ *
+ * @example
+ * // Debounced search
+ * const { data } = useFetch<Game[]>(`/api/games?q=${search}`, [search], { debounceMs: 250 });
  */
-export function useFetch<T>(url: string, deps: unknown[] = []): UseFetchResult<T> {
+export function useFetch<T>(
+  url: string,
+  deps: unknown[] = [],
+  options?: { debounceMs?: number },
+): UseFetchResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  const debounceMs = options?.debounceMs ?? 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -63,12 +75,20 @@ export function useFetch<T>(url: string, deps: unknown[] = []): UseFetchResult<T
       }
     }
 
+    if (debounceMs > 0) {
+      const timer = setTimeout(load, debounceMs);
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
+    }
+
     load();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, refreshKey, ...deps]);
+  }, [url, refreshKey, debounceMs, ...deps]);
 
   return { data, loading, error, refresh };
 }
@@ -114,8 +134,9 @@ export function useMultiFetch<T extends Record<string, unknown>>(
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
-  const urlEntries = Object.entries(urls);
-  const urlKey = urlEntries.map(([k, v]) => `${k}:${v}`).join("|");
+  const urlsRef = useRef(urls);
+  urlsRef.current = urls;
+  const urlKey = JSON.stringify(urls);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,7 +146,7 @@ export function useMultiFetch<T extends Record<string, unknown>>(
         if (!cancelled) setLoading(true);
         if (!cancelled) setError(null);
 
-        const entries = Object.entries(urls) as [keyof T, string][];
+        const entries = Object.entries(urlsRef.current) as [keyof T, string][];
         const responses = await Promise.all(entries.map(([, url]) => fetch(url)));
 
         for (const res of responses) {

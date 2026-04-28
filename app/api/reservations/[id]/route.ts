@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
-import { firstError, validatePositiveInt } from "@/lib/validation";
+import { firstError, validatePositiveInt, validateEnum } from "@/lib/validation";
+import { VALID_RESERVATION_STATUSES } from "@/lib/constants";
 
 export async function PUT(
   request: Request,
@@ -21,6 +22,7 @@ export async function PUT(
     const validationError = firstError(
       validatePositiveInt(body.party_size, "party_size"),
       validatePositiveInt(body.duration_minutes, "duration_minutes"),
+      validateEnum(body.status, "status", VALID_RESERVATION_STATUSES),
     );
     if (validationError) {
       return Response.json({ error: validationError }, { status: 400 });

@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
-import { EventItem } from "@/lib/types";
+import { EventItem, EventType, EventStatus } from "@/lib/types";
+import { VALID_EVENT_STATUSES } from "@/lib/constants";
 
 interface EventModalProps {
   event: EventItem | null;
-  eventTypes: string[];
+  eventTypes: readonly string[];
   onClose: () => void;
   onSaved: () => void;
 }
@@ -97,7 +98,7 @@ export default function EventModal({ event, eventTypes, onClose, onSaved }: Even
             <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
             <select
               value={form.event_type}
-              onChange={(e) => setForm({ ...form, event_type: e.target.value })}
+              onChange={(e) => setForm({ ...form, event_type: e.target.value as EventType })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             >
               {eventTypes.map((type) => (
@@ -151,12 +152,14 @@ export default function EventModal({ event, eventTypes, onClose, onSaved }: Even
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select
               value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              onChange={(e) => setForm({ ...form, status: e.target.value as EventStatus })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             >
-              <option value="upcoming">Upcoming</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              {VALID_EVENT_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                </option>
+              ))}
             </select>
           </div>
         )}

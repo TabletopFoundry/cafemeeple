@@ -11,8 +11,7 @@ import { EventItem, Rsvp } from "@/lib/types";
 import EventCard from "./components/EventCard";
 import EventModal from "./components/EventModal";
 import RsvpModal from "./components/RsvpModal";
-
-const EVENT_TYPES = ["Game Night", "Tournament", "Workshop", "Social", "Family Event", "Special"];
+import { VALID_EVENT_TYPES } from "@/lib/constants";
 
 export default function EventsPage() {
   usePageTitle("Events");
@@ -138,7 +137,7 @@ export default function EventsPage() {
       )}
 
       {(showAddModal || editingEvent) && (
-        <EventModal event={editingEvent} eventTypes={EVENT_TYPES} onClose={closeEventModal} onSaved={handleEventSaved} />
+        <EventModal event={editingEvent} eventTypes={VALID_EVENT_TYPES} onClose={closeEventModal} onSaved={handleEventSaved} />
       )}
 
       {viewingRsvps && <RsvpModal event={viewingRsvps} rsvps={rsvps} onClose={() => setViewingRsvps(null)} onAddRsvp={addRsvp} />}

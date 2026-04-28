@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
-import { firstError, validatePositiveInt } from "@/lib/validation";
+import { firstError, validatePositiveInt, validateEnum } from "@/lib/validation";
+import { VALID_RESERVATION_STATUSES } from "@/lib/constants";
 
 export async function GET(request: Request) {
   try {
@@ -46,9 +47,27 @@ export async function POST(request: Request) {
     const validationError = firstError(
       validatePositiveInt(party_size, "party_size"),
       validatePositiveInt(duration_minutes, "duration_minutes"),
+      validateEnum(body.status, "status", VALID_RESERVATION_STATUSES),
     );
     if (validationError) {
       return Response.json({ error: validationError }, { status: 400 });
+    }
+
+    // Validate table exists and has sufficient capacity
+    if (table_id) {
+      const table = db.prepare("SELECT id, capacity FROM tables WHERE id = ?").get(table_id) as
+        | { id: number; capacity: number }
+        | undefined;
+      if (!table) {
+        return Response.json({ error: "Table not found" }, { status: 404 });
+      }
+      const effectivePartySize = party_size || 2;
+      if (effectivePartySize > table.capacity) {
+        return Response.json(
+          { error: `Party size exceeds table capacity (${table.capacity})` },
+          { status: 400 },
+        );
+      }
     }
 
     const result = db.prepare(`

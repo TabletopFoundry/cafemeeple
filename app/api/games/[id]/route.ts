@@ -138,6 +138,18 @@ export async function DELETE(
   const { id } = await params;
   try {
     const db = getDb();
+
+    const hasCheckouts = db.prepare(
+      "SELECT COUNT(*) as count FROM game_checkouts WHERE game_id = ?"
+    ).get(id) as { count: number };
+
+    if (hasCheckouts.count > 0) {
+      return Response.json(
+        { error: "Cannot delete a game with checkout history. Consider marking it as 'Needs Replacement' instead." },
+        { status: 409 }
+      );
+    }
+
     const result = db.prepare("DELETE FROM games WHERE id = ?").run(id);
     if (result.changes === 0) {
       return Response.json({ error: "Game not found" }, { status: 404 });

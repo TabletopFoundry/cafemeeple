@@ -105,7 +105,10 @@ export default function ReservationsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error("Failed to save");
+    if (!res.ok) {
+      const data = await res.json().catch(() => null) as { error?: string } | null;
+      throw new Error(data?.error || "Failed to save reservation");
+    }
     setShowAddModal(false);
     setEditingReservation(null);
     refresh();

@@ -12,6 +12,27 @@ interface CheckInModalProps {
 }
 
 export default function CheckInModal({ tables, onClose, onSaved }: CheckInModalProps) {
+  if (tables.length === 0) {
+    return (
+      <Modal title="Seat a new party" onClose={onClose}>
+        <div className="p-6 text-center text-gray-500">
+          <p>No tables are currently available.</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-4 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            Close
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  return <CheckInForm tables={tables} onClose={onClose} onSaved={onSaved} />;
+}
+
+function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
   const [form, setForm] = useState({
     table_id: tables[0]?.id ?? 0,
     party_name: "",

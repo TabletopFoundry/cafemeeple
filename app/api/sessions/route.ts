@@ -1,7 +1,6 @@
 import { getDb } from "@/lib/db";
 import { firstError, validatePositiveInt, validateNonNegativeNumber, validateEnum } from "@/lib/validation";
-
-const VALID_RATE_TYPES = ["per_person", "per_table"] as const;
+import { VALID_RATE_TYPES } from "@/lib/constants";
 
 export async function GET(request: Request) {
   try {
@@ -64,12 +63,16 @@ export async function POST(request: Request) {
       return Response.json({ error: validationError }, { status: 400 });
     }
 
-    const table = db.prepare("SELECT id, capacity FROM tables WHERE id = ?").get(table_id) as
-      | { id: number; capacity: number }
+    const table = db.prepare("SELECT id, capacity, status FROM tables WHERE id = ?").get(table_id) as
+      | { id: number; capacity: number; status: string }
       | undefined;
 
     if (!table) {
       return Response.json({ error: "Table not found" }, { status: 404 });
+    }
+
+    if (table.status === "maintenance") {
+      return Response.json({ error: "This table is currently under maintenance" }, { status: 400 });
     }
 
     if ((party_size || 0) > table.capacity) {
@@ -96,6 +99,8 @@ export async function POST(request: Request) {
             WHERE table_id = ?
               AND reservation_date = date('now')
               AND status IN ('confirmed', 'pending')
+              AND time('now', 'localtime') < time(reservation_time, '+' || duration_minutes || ' minutes')
+              AND time('now', 'localtime', '+30 minutes') > time(reservation_time)
             LIMIT 1
           `,
         )

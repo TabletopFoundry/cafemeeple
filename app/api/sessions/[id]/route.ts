@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import { conditionScoreForLabel } from "@/lib/game-utils";
 
 export async function PUT(
   request: Request,
@@ -38,10 +39,6 @@ export async function PUT(
       return Response.json({ error: "Session is already closed" }, { status: 409 });
     }
 
-    const activeGames = db
-      .prepare("SELECT COUNT(*) as count FROM game_checkouts WHERE session_id = ? AND returned_at IS NULL")
-      .get(id) as { count: number };
-
     const total =
       session.rate_type === "per_table"
         ? session.cover_charge_per_person
@@ -62,21 +59,36 @@ export async function PUT(
         `UPDATE game_checkouts SET returned_at = datetime('now'), return_condition = COALESCE(return_condition, 'Good') WHERE session_id = ? AND returned_at IS NULL`,
       ).run(id);
 
-      // Restore inventory for each auto-returned game
+      // Restore inventory and update condition metadata for each auto-returned game
+      const defaultConditionScore = conditionScoreForLabel("Good");
       for (const { game_id } of unreturned) {
-        db.prepare(
-          "UPDATE games SET copies_available = copies_available + 1, updated_at = datetime('now') WHERE id = ?"
-        ).run(game_id);
+        db.prepare(`
+          UPDATE games SET
+            copies_available = copies_available + 1,
+            condition = 'Good',
+            condition_score = ?,
+            last_inspected_at = datetime('now'),
+            needs_replacement = CASE
+              WHEN ? <= 2 THEN 1
+              WHEN (SELECT COUNT(*) FROM game_checkouts WHERE game_id = ?) >= replacement_threshold THEN 1
+              ELSE 0
+            END,
+            updated_at = datetime('now')
+          WHERE id = ?
+        `).run(defaultConditionScore, defaultConditionScore, game_id, game_id);
       }
+
+      return { autoReturnedCount: unreturned.length };
     });
-    closeTx();
+    const { autoReturnedCount } = closeTx();
 
     return Response.json({
       sessionId: id,
       tableName: session.table_name,
       partyName: session.party_name,
       total,
-      activeGames: activeGames.count,
+      autoReturnedGames: autoReturnedCount,
+      activeGames: 0,
       rateType: session.rate_type,
       rateAmount: session.cover_charge_per_person,
     });

@@ -1,24 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Grid2X2, List, Plus } from "lucide-react";
 import { EmptyState, ErrorMessage, LoadingSpinner } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useFetch } from "@/hooks/useFetch";
 import type { Game } from "@/lib/types";
 import GameFilterBar from "./components/GameFilterBar";
 import GameGrid from "./components/GameGrid";
 import GameListTable from "./components/GameListTable";
 import GameModal from "./components/GameModal";
-
-const CATEGORIES = ["Strategy", "Family", "Party", "Cooperative", "Card Game", "Abstract", "Thematic", "Word Game"];
+import { GAME_CATEGORIES } from "@/lib/constants";
 
 export default function GamesPage() {
   usePageTitle("Games");
-  const [games, setGames] = useState<Game[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [conditionFilter, setConditionFilter] = useState("");
@@ -28,59 +25,46 @@ export default function GamesPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const { addToast } = useToast();
 
-  useEffect(() => {
-    let cancelled = false;
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (categoryFilter) params.set("category", categoryFilter);
+    if (conditionFilter) params.set("condition", conditionFilter);
+    if (complexityFilter) params.set("complexity", complexityFilter);
+    if (playerCountFilter) params.set("playerCount", playerCountFilter);
+    if (replacementOnly) params.set("needsReplacement", "true");
+    return params.toString();
+  }, [search, categoryFilter, conditionFilter, complexityFilter, playerCountFilter, replacementOnly]);
 
-    const timer = setTimeout(async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const params = new URLSearchParams();
-        if (search) params.set("search", search);
-        if (categoryFilter) params.set("category", categoryFilter);
-        if (conditionFilter) params.set("condition", conditionFilter);
-        if (complexityFilter) params.set("complexity", complexityFilter);
-        if (playerCountFilter) params.set("playerCount", playerCountFilter);
-        if (replacementOnly) params.set("needsReplacement", "true");
+  const { data: games, loading, error, refresh } = useFetch<Game[]>(
+    `/api/games?${queryString}`,
+    [queryString],
+    { debounceMs: 250 },
+  );
 
-        const response = await fetch(`/api/games?${params.toString()}`);
-        if (!response.ok) throw new Error("Failed to load games");
-        const json = (await response.json()) as Game[];
-        if (!cancelled) setGames(json);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [search, categoryFilter, conditionFilter, complexityFilter, playerCountFilter, replacementOnly, refreshKey]);
-
-  const replacementCount = useMemo(() => games.filter((game) => Number(game.needs_replacement) === 1).length, [games]);
+  const gamesList = games ?? [];
+  const replacementCount = useMemo(() => gamesList.filter((game) => Number(game.needs_replacement) === 1).length, [gamesList]);
   const closeModal = () => {
     setShowAddModal(false);
     setEditingGame(null);
   };
   const handleSaved = () => {
     closeModal();
-    setRefreshKey((current) => current + 1);
+    refresh();
   };
-  const retryLoad = () => setRefreshKey((current) => current + 1);
 
   const handleDelete = async (id: number) => {
     try {
       const response = await fetch(`/api/games/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Failed to delete game");
+      if (!response.ok) {
+        const data = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to delete game");
+      }
       setDeleteConfirm(null);
-      retryLoad();
+      refresh();
       addToast("Game removed from library", "success");
     } catch (err) {
       addToast(err instanceof Error ? err.message : "Failed to delete game", "error");
@@ -93,7 +77,7 @@ export default function GamesPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Game library</h1>
-          <p className="text-sm text-gray-500">{games.length} titles loaded · {replacementCount} flagged for replacement review.</p>
+          <p className="text-sm text-gray-500">{gamesList.length} titles loaded · {replacementCount} flagged for replacement review.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
@@ -113,7 +97,7 @@ export default function GamesPage() {
       <GameFilterBar
         search={search}
         onSearchChange={setSearch}
-        categories={CATEGORIES}
+        categories={GAME_CATEGORIES}
         categoryFilter={categoryFilter}
         onCategoryFilterChange={setCategoryFilter}
         conditionFilter={conditionFilter}
@@ -127,9 +111,9 @@ export default function GamesPage() {
       />
 
       {loading && <LoadingSpinner size="lg" />}
-      {error && <ErrorMessage message={error} onRetry={retryLoad} />}
+      {error && <ErrorMessage message={error} onRetry={refresh} />}
 
-      {!loading && !error && games.length === 0 && (
+      {!loading && !error && gamesList.length === 0 && (
         <EmptyState
           icon="🎲"
           title="No games match these filters"
@@ -138,15 +122,15 @@ export default function GamesPage() {
         />
       )}
 
-      {!loading && !error && games.length > 0 && (
+      {!loading && !error && gamesList.length > 0 && (
         viewMode === "grid" ? (
-          <GameGrid games={games} onEdit={setEditingGame} onDelete={setDeleteConfirm} />
+          <GameGrid games={gamesList} onEdit={setEditingGame} onDelete={setDeleteConfirm} />
         ) : (
-          <GameListTable games={games} onEdit={setEditingGame} onDelete={setDeleteConfirm} />
+          <GameListTable games={gamesList} onEdit={setEditingGame} onDelete={setDeleteConfirm} />
         )
       )}
 
-      {(showAddModal || editingGame) && <GameModal game={editingGame} categories={CATEGORIES} onClose={closeModal} onSaved={handleSaved} />}
+      {(showAddModal || editingGame) && <GameModal game={editingGame} categories={GAME_CATEGORIES} onClose={closeModal} onSaved={handleSaved} />}
 
       {deleteConfirm !== null && (
         <ConfirmDialog
