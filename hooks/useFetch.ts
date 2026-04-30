@@ -135,7 +135,9 @@ export function useMultiFetch<T extends Record<string, unknown>>(
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   const urlsRef = useRef(urls);
-  urlsRef.current = urls;
+  useEffect(() => {
+    urlsRef.current = urls;
+  });
   const urlKey = JSON.stringify(urls);
 
   useEffect(() => {

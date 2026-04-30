@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
 import { firstError, validatePositiveInt, validateEnum } from "@/lib/validation";
-import { VALID_EVENT_TYPES, VALID_EVENT_STATUSES } from "@/lib/constants";
+import { VALID_EVENT_TYPES, VALID_EVENT_STATUSES, DEFAULT_EVENT_CAPACITY } from "@/lib/constants";
 
 export async function GET() {
   try {
@@ -47,9 +47,9 @@ export async function POST(request: Request) {
       event_date,
       start_time,
       end_time,
-      capacity || 20,
-      event_type || "Game Night",
-      status || "upcoming",
+      capacity || DEFAULT_EVENT_CAPACITY,
+      event_type || VALID_EVENT_TYPES[0],
+      status || VALID_EVENT_STATUSES[0],
     );
 
     const event = db.prepare("SELECT * FROM events WHERE id = ?").get(result.lastInsertRowid);

@@ -2,6 +2,14 @@ import { getDb } from "@/lib/db";
 import { seedDatabase } from "@/lib/seed";
 
 export async function POST() {
+  // Guard: only allow seeding in development
+  if (process.env.NODE_ENV === "production") {
+    return Response.json(
+      { error: "Seeding is disabled in production" },
+      { status: 403 },
+    );
+  }
+
   try {
     const result = seedDatabase();
     return Response.json({ success: true, ...result });

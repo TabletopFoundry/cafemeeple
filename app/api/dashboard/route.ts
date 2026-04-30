@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import type { AlertType, AlertSeverity } from "@/lib/types";
 
 const DASHBOARD_ESTIMATES = {
   avgFoodBeveragePerPerson: 11.5,
@@ -150,26 +151,26 @@ export async function GET() {
       )
       .all() as { title: string; copies_available: number; copies_total: number }[];
 
-    const alerts = [
+    const alerts: { type: AlertType; severity: AlertSeverity; message: string }[] = [
       ...(replacementCount.count
         ? [
             {
-              type: "replacement",
-              severity: "warning",
+              type: "replacement" as const,
+              severity: "warning" as const,
               message: `${replacementCount.count} titles are trending toward replacement or repair.`,
             },
           ]
         : []),
       ...lowInventoryGames.map((game) => ({
-        type: "inventory",
-        severity: "info",
+        type: "inventory" as const,
+        severity: "info" as const,
         message: `${game.title} is low on shelf stock (${game.copies_available}/${game.copies_total} available).`,
       })),
       ...(reservationCount.count
         ? [
             {
-              type: "reservations",
-              severity: "info",
+              type: "reservations" as const,
+              severity: "info" as const,
               message: `${reservationCount.count} reservations still need seating or confirmation today.`,
             },
           ]

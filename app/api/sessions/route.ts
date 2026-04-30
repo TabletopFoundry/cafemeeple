@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
 import { firstError, validatePositiveInt, validateNonNegativeNumber, validateEnum } from "@/lib/validation";
-import { VALID_RATE_TYPES } from "@/lib/constants";
+import { VALID_RATE_TYPES, DEFAULT_COVER_CHARGE } from "@/lib/constants";
 
 export async function GET(request: Request) {
   try {
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const billingType = rate_type === "per_table" ? "per_table" : "per_person";
+    const billingType: (typeof VALID_RATE_TYPES)[number] = rate_type === "per_table" ? "per_table" : "per_person";
     const sessionTx = db.transaction(() => {
       const activeSession = db
         .prepare("SELECT id FROM sessions WHERE table_id = ? AND status = 'active'")
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       const result = db.prepare(`
         INSERT INTO sessions (table_id, party_name, party_size, rate_type, cover_charge_per_person)
         VALUES (?, ?, ?, ?, ?)
-      `).run(table_id, party_name || "Walk-in", party_size || 2, billingType, cover_charge_per_person || 5.0);
+      `).run(table_id, party_name || "Walk-in", party_size || 2, billingType, cover_charge_per_person || DEFAULT_COVER_CHARGE);
 
       db.prepare("UPDATE tables SET status = 'occupied' WHERE id = ?").run(table_id);
 

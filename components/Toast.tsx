@@ -31,9 +31,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   // Clean up all timeouts on unmount
   useEffect(() => {
+    const refs = timeoutRefs.current;
     return () => {
-      timeoutRefs.current.forEach((timer) => clearTimeout(timer));
-      timeoutRefs.current.clear();
+      refs.forEach((timer) => clearTimeout(timer));
+      refs.clear();
     };
   }, []);
 

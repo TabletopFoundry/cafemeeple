@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
 import { CONDITION_LABELS } from "@/lib/game-utils";
-import type { Game } from "@/lib/types";
+import type { Game, GameCondition } from "@/lib/types";
 import NumberField from "./NumberField";
 
 interface GameModalProps {
@@ -23,7 +23,7 @@ interface GameFormState {
   category: string;
   description: string;
   copies_total: number;
-  condition: string;
+  condition: GameCondition;
   condition_score: number;
   shelf_location: string;
   replacement_threshold: number;
@@ -144,7 +144,7 @@ export default function GameModal({ game, categories, onClose, onSaved }: GameMo
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Condition label</label>
-          <select value={form.condition} onChange={(event) => setForm({ ...form, condition: event.target.value })} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2">
+          <select value={form.condition} onChange={(event) => setForm({ ...form, condition: event.target.value as GameCondition })} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2">
             {CONDITION_LABELS.map((condition) => (
               <option key={condition} value={condition}>
                 {condition}

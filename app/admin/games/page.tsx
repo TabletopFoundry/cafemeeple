@@ -45,7 +45,7 @@ export default function GamesPage() {
     { debounceMs: 250 },
   );
 
-  const gamesList = games ?? [];
+  const gamesList = useMemo(() => games ?? [], [games]);
   const replacementCount = useMemo(() => gamesList.filter((game) => Number(game.needs_replacement) === 1).length, [gamesList]);
   const closeModal = () => {
     setShowAddModal(false);
