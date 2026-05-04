@@ -52,10 +52,13 @@ export default function EventModal({ event, eventTypes, onClose, onSaved }: Even
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error("Failed to save");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to save event");
+      }
       onSaved();
-    } catch {
-      addToast("Failed to save event", "error");
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : "Failed to save event", "error");
     } finally {
       setSaving(false);
     }

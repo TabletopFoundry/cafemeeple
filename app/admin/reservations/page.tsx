@@ -58,12 +58,15 @@ export default function ReservationsPage() {
   const handleDelete = async (id: number) => {
     try {
       const res = await fetch(`/api/reservations/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete reservation");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to delete reservation");
+      }
       setDeleteConfirm(null);
       refresh();
       addToast("Reservation cancelled", "success");
-    } catch {
-      addToast("Failed to delete reservation", "error");
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : "Failed to delete reservation", "error");
       setDeleteConfirm(null);
     }
   };
@@ -75,10 +78,13 @@ export default function ReservationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error("Failed to update reservation");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to update reservation");
+      }
       refresh();
-    } catch {
-      addToast("Failed to update reservation", "error");
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : "Failed to update reservation", "error");
     }
   };
 

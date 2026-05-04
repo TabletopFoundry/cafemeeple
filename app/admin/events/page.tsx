@@ -37,12 +37,15 @@ export default function EventsPage() {
   const handleDelete = async (id: number) => {
     try {
       const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete event");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to delete event");
+      }
       refresh();
       setDeleteConfirm(null);
       addToast("Event deleted successfully", "success");
-    } catch {
-      addToast("Failed to delete event", "error");
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : "Failed to delete event", "error");
       setDeleteConfirm(null);
     }
   };

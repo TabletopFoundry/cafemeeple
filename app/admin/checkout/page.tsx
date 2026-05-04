@@ -71,11 +71,14 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ return_condition: condition, notes }),
       });
-      if (!res.ok) throw new Error("Failed to return");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to return");
+      }
       setReturnModal(null);
       refresh();
-    } catch {
-      addToast("Failed to return game", "error");
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : "Failed to return game", "error");
     }
   };
 

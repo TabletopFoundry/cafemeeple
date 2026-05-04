@@ -35,25 +35,30 @@ export default function FloorMap({
                 } else if (table.status === "available") {
                   onStartCheckIn();
                 }
+                // maintenance and reserved tables: click does nothing
               }}
               aria-label={`${table.name} — ${table.status}${session ? `, ${session.party_name}, ${session.party_size} guests` : ""}`}
-              className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${
-                table.status === "occupied"
-                  ? "border-violet-200 bg-violet-50"
-                  : table.status === "reserved"
-                    ? "border-amber-200 bg-amber-50"
-                    : "border-emerald-200 bg-emerald-50"
+              className={`rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${
+                table.status === "maintenance"
+                  ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                  : table.status === "occupied"
+                    ? "border-violet-200 bg-violet-50 hover:-translate-y-0.5 hover:shadow-md"
+                    : table.status === "reserved"
+                      ? "border-amber-200 bg-amber-50 hover:-translate-y-0.5 hover:shadow-md"
+                      : "border-emerald-200 bg-emerald-50 hover:-translate-y-0.5 hover:shadow-md"
               }`}
             >
               <div className="mb-4 flex items-center justify-between">
                 <p className="font-semibold text-gray-900">{table.name}</p>
                 <Badge
                   variant={
-                    table.status === "occupied"
-                      ? "info"
-                      : table.status === "reserved"
-                        ? "warning"
-                        : "success"
+                    table.status === "maintenance"
+                      ? "default"
+                      : table.status === "occupied"
+                        ? "info"
+                        : table.status === "reserved"
+                          ? "warning"
+                          : "success"
                   }
                 >
                   {table.status}
@@ -77,9 +82,11 @@ export default function FloorMap({
                   </>
                 ) : (
                   <p className="pt-2 text-sm text-gray-500">
-                    {table.status === "reserved"
-                      ? "Held for reservation"
-                      : "Tap to start a new table session"}
+                    {table.status === "maintenance"
+                      ? "Under maintenance"
+                      : table.status === "reserved"
+                        ? "Held for reservation"
+                        : "Tap to start a new table session"}
                   </p>
                 )}
               </div>

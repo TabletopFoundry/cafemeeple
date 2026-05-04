@@ -38,7 +38,8 @@ export default function TablesPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to close session");
+        const data = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to close session");
       }
 
       setSelectedSession(null);

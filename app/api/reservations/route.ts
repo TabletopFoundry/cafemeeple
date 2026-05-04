@@ -70,6 +70,26 @@ export async function POST(request: Request) {
       }
     }
 
+    // Check for time-slot overlaps with existing reservations on the same table
+    if (table_id) {
+      const overlap = db.prepare(`
+        SELECT id FROM reservations
+        WHERE table_id = ?
+          AND reservation_date = ?
+          AND status IN ('confirmed', 'pending')
+          AND time(?, '+' || ? || ' minutes') > time(reservation_time)
+          AND time(reservation_time, '+' || duration_minutes || ' minutes') > time(?)
+        LIMIT 1
+      `).get(table_id, reservation_date, reservation_time, duration_minutes || 120, reservation_time);
+
+      if (overlap) {
+        return Response.json(
+          { error: "This table already has a reservation during that time slot" },
+          { status: 409 },
+        );
+      }
+    }
+
     const result = db.prepare(`
       INSERT INTO reservations (guest_name, guest_email, guest_phone, party_size, table_id, reservation_date, reservation_time, duration_minutes, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
