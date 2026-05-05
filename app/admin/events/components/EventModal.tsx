@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
+import { MAX_TEXT_LENGTHS, VALID_EVENT_STATUSES } from "@/lib/constants";
 import { EventItem, EventType, EventStatus } from "@/lib/types";
-import { VALID_EVENT_STATUSES } from "@/lib/constants";
 
 interface EventModalProps {
   event: EventItem | null;
@@ -14,6 +14,14 @@ interface EventModalProps {
 }
 
 export default function EventModal({ event, eventTypes, onClose, onSaved }: EventModalProps) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const dateId = useId();
+  const typeId = useId();
+  const startTimeId = useId();
+  const endTimeId = useId();
+  const capacityId = useId();
+  const statusId = useId();
   const [form, setForm] = useState({
     title: event?.title || "",
     description: event?.description || "",
@@ -68,28 +76,33 @@ export default function EventModal({ event, eventTypes, onClose, onSaved }: Even
     <Modal title={event ? "Edit Event" : "Create Event"} onClose={onClose}>
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+          <label htmlFor={titleId} className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
           <input
+            id={titleId}
             type="text"
             required
+            maxLength={MAX_TEXT_LENGTHS.eventTitle}
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <label htmlFor={descriptionId} className="block text-sm font-medium text-gray-700 mb-1">Description</label>
           <textarea
+            id={descriptionId}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
             rows={3}
+            maxLength={MAX_TEXT_LENGTHS.eventDescription}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+            <label htmlFor={dateId} className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
             <input
+              id={dateId}
               type="date"
               required
               value={form.event_date}
@@ -98,8 +111,9 @@ export default function EventModal({ event, eventTypes, onClose, onSaved }: Even
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+            <label htmlFor={typeId} className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
             <select
+              id={typeId}
               value={form.event_type}
               onChange={(e) => setForm({ ...form, event_type: e.target.value as EventType })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
@@ -114,8 +128,9 @@ export default function EventModal({ event, eventTypes, onClose, onSaved }: Even
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+            <label htmlFor={startTimeId} className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
             <input
+              id={startTimeId}
               type="time"
               value={form.start_time}
               onChange={(e) => setForm({ ...form, start_time: e.target.value })}
@@ -123,8 +138,9 @@ export default function EventModal({ event, eventTypes, onClose, onSaved }: Even
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+            <label htmlFor={endTimeId} className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
             <input
+              id={endTimeId}
               type="time"
               value={form.end_time}
               onChange={(e) => {
@@ -140,8 +156,9 @@ export default function EventModal({ event, eventTypes, onClose, onSaved }: Even
             {errors.end_time && <p className="mt-1 text-xs text-red-600">{errors.end_time}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+            <label htmlFor={capacityId} className="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
             <input
+              id={capacityId}
               type="number"
               min={1}
               value={form.capacity}
@@ -152,8 +169,9 @@ export default function EventModal({ event, eventTypes, onClose, onSaved }: Even
         </div>
         {event && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label htmlFor={statusId} className="block text-sm font-medium text-gray-700 mb-1">Status</label>
             <select
+              id={statusId}
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value as EventStatus })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"

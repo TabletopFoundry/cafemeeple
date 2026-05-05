@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
+import { MAX_TEXT_LENGTHS } from "@/lib/constants";
 import type { Table } from "@/lib/types";
 
 interface CheckInModalProps {
@@ -33,6 +34,11 @@ export default function CheckInModal({ tables, onClose, onSaved }: CheckInModalP
 }
 
 function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
+  const tableId = useId();
+  const partyNameId = useId();
+  const guestCountId = useId();
+  const rateTypeId = useId();
+  const coverChargeId = useId();
   const [form, setForm] = useState({
     table_id: tables[0]?.id ?? 0,
     party_name: "",
@@ -73,8 +79,9 @@ function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
     <Modal title="Seat a new party" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4 p-6">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Table</label>
+          <label htmlFor={tableId} className="mb-1 block text-sm font-medium text-gray-700">Table</label>
           <select
+            id={tableId}
             value={form.table_id}
             onChange={(event) => setForm({ ...form, table_id: Number(event.target.value) })}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
@@ -88,17 +95,20 @@ function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Party name</label>
+            <label htmlFor={partyNameId} className="mb-1 block text-sm font-medium text-gray-700">Party name</label>
             <input
+              id={partyNameId}
               value={form.party_name}
+              maxLength={MAX_TEXT_LENGTHS.partyName}
               onChange={(event) => setForm({ ...form, party_name: event.target.value })}
               placeholder="Walk-in"
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Guest count</label>
+            <label htmlFor={guestCountId} className="mb-1 block text-sm font-medium text-gray-700">Guest count</label>
             <input
+              id={guestCountId}
               type="number"
               min={1}
               max={selectedTable?.capacity ?? 12}
@@ -112,8 +122,9 @@ function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Rate model</label>
+            <label htmlFor={rateTypeId} className="mb-1 block text-sm font-medium text-gray-700">Rate model</label>
             <select
+              id={rateTypeId}
               value={form.rate_type}
               onChange={(event) =>
                 setForm({
@@ -129,10 +140,11 @@ function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor={coverChargeId} className="mb-1 block text-sm font-medium text-gray-700">
               {form.rate_type === "per_person" ? "Rate per guest" : "Rate per table"}
             </label>
             <input
+              id={coverChargeId}
               type="number"
               min={1}
               step={0.5}

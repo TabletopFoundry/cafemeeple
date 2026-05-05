@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ErrorMessage, LoadingCard } from "@/components/ui";
 import { Plus, CalendarDays } from "lucide-react";
 import { useToast } from "@/components/Toast";
@@ -35,6 +35,8 @@ type StatusVariant = "success" | "warning" | "danger" | "info" | "default";
 
 export default function ReservationsPage() {
   usePageTitle("Reservations");
+  const filterDateId = useId();
+  const showAllId = useId();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [showAll, setShowAll] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -43,7 +45,9 @@ export default function ReservationsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const { addToast } = useToast();
 
-  const resUrl = showAll ? "/api/reservations" : `/api/reservations?date=${selectedDate}`;
+  const resUrl = showAll
+    ? "/api/reservations?limit=500"
+    : `/api/reservations?date=${selectedDate}&limit=150`;
   const { data, loading, error, refresh } = useMultiFetch<{
     reservations: ReservationRecord[];
     tables: TableOption[];
@@ -180,7 +184,9 @@ export default function ReservationsPage() {
 
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
         <div className="flex items-center gap-4">
+          <label htmlFor={filterDateId} className="sr-only">Filter reservations by date</label>
           <input
+            id={filterDateId}
             type="date"
             value={selectedDate}
             onChange={(e) => {
@@ -198,8 +204,9 @@ export default function ReservationsPage() {
           >
             Today
           </button>
-          <label className="flex items-center gap-2 text-sm text-gray-600">
+          <label htmlFor={showAllId} className="flex items-center gap-2 text-sm text-gray-600">
             <input
+              id={showAllId}
               type="checkbox"
               checked={showAll}
               onChange={(e) => setShowAll(e.target.checked)}

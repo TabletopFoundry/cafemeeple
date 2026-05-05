@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
+import { DEFAULT_RESERVATION_DURATION, MAX_TEXT_LENGTHS } from "@/lib/constants";
 import type { Reservation, Table } from "@/lib/types";
 
 type ModalReservation = Pick<
@@ -46,6 +47,15 @@ export default function ReservationModal({
   onClose,
   onSubmit,
 }: ReservationModalProps) {
+  const guestNameId = useId();
+  const guestEmailId = useId();
+  const guestPhoneId = useId();
+  const dateId = useId();
+  const timeId = useId();
+  const partySizeId = useId();
+  const durationId = useId();
+  const tableId = useId();
+  const notesId = useId();
   const [form, setForm] = useState<ReservationFormValues>({
     guest_name: reservation?.guest_name || "",
     guest_email: reservation?.guest_email || "",
@@ -54,7 +64,7 @@ export default function ReservationModal({
     table_id: reservation?.table_id ?? "",
     reservation_date: reservation?.reservation_date ?? new Date().toISOString().slice(0, 10),
     reservation_time: reservation?.reservation_time ?? "18:00",
-    duration_minutes: reservation?.duration_minutes || 120,
+    duration_minutes: reservation?.duration_minutes || DEFAULT_RESERVATION_DURATION,
     notes: reservation?.notes || "",
   });
   const [saving, setSaving] = useState(false);
@@ -80,8 +90,8 @@ export default function ReservationModal({
     setSaving(true);
     try {
       await onSubmit(form, reservation ? reservation.id : null);
-    } catch {
-      addToast("Failed to save reservation", "error");
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : "Failed to save reservation", "error");
     } finally {
       setSaving(false);
     }
@@ -91,10 +101,12 @@ export default function ReservationModal({
     <Modal title={reservation ? "Edit Reservation" : "New Reservation"} onClose={onClose}>
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Guest Name *</label>
+          <label htmlFor={guestNameId} className="block text-sm font-medium text-gray-700 mb-1">Guest Name *</label>
           <input
+            id={guestNameId}
             type="text"
             required
+            maxLength={MAX_TEXT_LENGTHS.guestName}
             value={form.guest_name}
             onChange={(e) => setForm({ ...form, guest_name: e.target.value })}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
@@ -102,9 +114,11 @@ export default function ReservationModal({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label htmlFor={guestEmailId} className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
+              id={guestEmailId}
               type="email"
+              maxLength={MAX_TEXT_LENGTHS.guestEmail}
               value={form.guest_email}
               onChange={(e) => {
                 setForm({ ...form, guest_email: e.target.value });
@@ -119,9 +133,11 @@ export default function ReservationModal({
             {errors.guest_email && <p className="mt-1 text-xs text-red-600">{errors.guest_email}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <label htmlFor={guestPhoneId} className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
             <input
+              id={guestPhoneId}
               type="tel"
+              maxLength={MAX_TEXT_LENGTHS.guestPhone}
               value={form.guest_phone}
               onChange={(e) => setForm({ ...form, guest_phone: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
@@ -130,8 +146,9 @@ export default function ReservationModal({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+            <label htmlFor={dateId} className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
             <input
+              id={dateId}
               type="date"
               required
               value={form.reservation_date}
@@ -140,8 +157,9 @@ export default function ReservationModal({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Time *</label>
+            <label htmlFor={timeId} className="block text-sm font-medium text-gray-700 mb-1">Time *</label>
             <input
+              id={timeId}
               type="time"
               required
               value={form.reservation_time}
@@ -152,8 +170,9 @@ export default function ReservationModal({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Party Size</label>
+            <label htmlFor={partySizeId} className="block text-sm font-medium text-gray-700 mb-1">Party Size</label>
             <input
+              id={partySizeId}
               type="number"
               min={1}
               value={form.party_size}
@@ -162,19 +181,21 @@ export default function ReservationModal({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
+            <label htmlFor={durationId} className="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
             <input
+              id={durationId}
               type="number"
               min={30}
               step={30}
               value={form.duration_minutes}
-              onChange={(e) => setForm({ ...form, duration_minutes: parseInt(e.target.value) || 120 })}
+              onChange={(e) => setForm({ ...form, duration_minutes: parseInt(e.target.value) || DEFAULT_RESERVATION_DURATION })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Table</label>
+            <label htmlFor={tableId} className="block text-sm font-medium text-gray-700 mb-1">Table</label>
             <select
+              id={tableId}
               value={form.table_id}
               onChange={(e) => setForm({ ...form, table_id: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
@@ -189,11 +210,13 @@ export default function ReservationModal({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <label htmlFor={notesId} className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
           <textarea
+            id={notesId}
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             rows={2}
+            maxLength={MAX_TEXT_LENGTHS.reservationNotes}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
             placeholder="Special requests, birthday, etc."
           />

@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import { conditionScoreForLabel, CONDITION_LABELS } from "@/lib/game-utils";
-import { firstError, validatePositiveInt, validateRange, validateEnum } from "@/lib/validation";
+import { firstError, validatePositiveInt, validateRange, validateEnum, validateMaxLength } from "@/lib/validation";
+import { MAX_TEXT_LENGTHS } from "@/lib/constants";
 
 export async function GET(request: Request) {
   try {
@@ -115,6 +116,11 @@ export async function POST(request: Request) {
       validatePositiveInt(copies_total, "copies_total"),
       validateEnum(condition, "condition", CONDITION_LABELS),
       validatePositiveInt(replacement_threshold, "replacement_threshold"),
+      validateMaxLength(title, "title", MAX_TEXT_LENGTHS.gameTitle),
+      validateMaxLength(category, "category", MAX_TEXT_LENGTHS.gameCategory),
+      validateMaxLength(description, "description", MAX_TEXT_LENGTHS.gameDescription),
+      validateMaxLength(image_url, "image_url", MAX_TEXT_LENGTHS.imageUrl),
+      validateMaxLength(shelf_location, "shelf_location", MAX_TEXT_LENGTHS.shelfLocation),
     );
     if (validationError) {
       return Response.json({ error: validationError }, { status: 400 });

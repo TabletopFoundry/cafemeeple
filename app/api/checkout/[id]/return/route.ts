@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import { conditionScoreForLabel, CONDITION_LABELS } from "@/lib/game-utils";
-import { validateEnum } from "@/lib/validation";
+import { firstError, validateEnum, validateMaxLength } from "@/lib/validation";
+import { MAX_TEXT_LENGTHS } from "@/lib/constants";
 
 export async function POST(
   request: Request,
@@ -12,9 +13,12 @@ export async function POST(
     const body = await request.json();
     const { return_condition, notes } = body;
 
-    const conditionError = validateEnum(return_condition, "return_condition", CONDITION_LABELS);
-    if (conditionError) {
-      return Response.json({ error: conditionError }, { status: 400 });
+    const validationError = firstError(
+      validateEnum(return_condition, "return_condition", CONDITION_LABELS),
+      validateMaxLength(notes, "notes", MAX_TEXT_LENGTHS.checkoutNotes),
+    );
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
     }
 
     const checkout = db.prepare("SELECT * FROM game_checkouts WHERE id = ?").get(id) as

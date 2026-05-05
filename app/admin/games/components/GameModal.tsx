@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
+import { MAX_TEXT_LENGTHS } from "@/lib/constants";
 import { CONDITION_LABELS } from "@/lib/game-utils";
 import type { Game, GameCondition } from "@/lib/types";
 import NumberField from "./NumberField";
@@ -30,6 +31,12 @@ interface GameFormState {
 }
 
 export default function GameModal({ game, categories, onClose, onSaved }: GameModalProps) {
+  const titleId = useId();
+  const categoryId = useId();
+  const shelfLocationId = useId();
+  const complexityId = useId();
+  const conditionId = useId();
+  const notesId = useId();
   const [form, setForm] = useState<GameFormState>({
     title: game?.title || "",
     min_players: game?.min_players || 1,
@@ -72,7 +79,10 @@ export default function GameModal({ game, categories, onClose, onSaved }: GameMo
         body: JSON.stringify(form),
       });
 
-      if (!response.ok) throw new Error("Failed to save game");
+      if (!response.ok) {
+        const data = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to save game");
+      }
       onSaved();
     } catch (err) {
       addToast(err instanceof Error ? err.message : "Failed to save game", "error");
@@ -85,9 +95,11 @@ export default function GameModal({ game, categories, onClose, onSaved }: GameMo
     <Modal title={game ? "Edit game" : "Add game"} onClose={onClose} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4 p-6">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Title</label>
+          <label htmlFor={titleId} className="mb-1 block text-sm font-medium text-gray-700">Title</label>
           <input
+            id={titleId}
             required
+            maxLength={MAX_TEXT_LENGTHS.gameTitle}
             value={form.title}
             onChange={(event) => {
               setForm({ ...form, title: event.target.value });
@@ -103,8 +115,8 @@ export default function GameModal({ game, categories, onClose, onSaved }: GameMo
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
-            <select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2">
+            <label htmlFor={categoryId} className="mb-1 block text-sm font-medium text-gray-700">Category</label>
+            <select id={categoryId} value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2">
               {categories.map((category) => (
                 <option key={category} value={category}>
                   {category}
@@ -113,8 +125,8 @@ export default function GameModal({ game, categories, onClose, onSaved }: GameMo
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Shelf location</label>
-            <input value={form.shelf_location} onChange={(event) => setForm({ ...form, shelf_location: event.target.value })} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2" />
+            <label htmlFor={shelfLocationId} className="mb-1 block text-sm font-medium text-gray-700">Shelf location</label>
+            <input id={shelfLocationId} maxLength={MAX_TEXT_LENGTHS.shelfLocation} value={form.shelf_location} onChange={(event) => setForm({ ...form, shelf_location: event.target.value })} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2" />
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-4">
@@ -125,8 +137,9 @@ export default function GameModal({ game, categories, onClose, onSaved }: GameMo
           </div>
           <NumberField label="Play time" value={form.play_time_minutes} onChange={(value) => setForm({ ...form, play_time_minutes: value })} suffix="min" />
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Complexity</label>
+            <label htmlFor={complexityId} className="mb-1 block text-sm font-medium text-gray-700">Complexity</label>
             <input
+              id={complexityId}
               type="number"
               min={1}
               max={5}
@@ -143,8 +156,8 @@ export default function GameModal({ game, categories, onClose, onSaved }: GameMo
           <NumberField label="Replacement threshold" value={form.replacement_threshold} onChange={(value) => setForm({ ...form, replacement_threshold: value })} min={1} />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Condition label</label>
-          <select value={form.condition} onChange={(event) => setForm({ ...form, condition: event.target.value as GameCondition })} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2">
+          <label htmlFor={conditionId} className="mb-1 block text-sm font-medium text-gray-700">Condition label</label>
+          <select id={conditionId} value={form.condition} onChange={(event) => setForm({ ...form, condition: event.target.value as GameCondition })} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2">
             {CONDITION_LABELS.map((condition) => (
               <option key={condition} value={condition}>
                 {condition}
@@ -153,8 +166,8 @@ export default function GameModal({ game, categories, onClose, onSaved }: GameMo
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Internal notes</label>
-          <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={4} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2" />
+          <label htmlFor={notesId} className="mb-1 block text-sm font-medium text-gray-700">Internal notes</label>
+          <textarea id={notesId} maxLength={MAX_TEXT_LENGTHS.gameDescription} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={4} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2" />
         </div>
         <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
           <button type="button" onClick={onClose} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">

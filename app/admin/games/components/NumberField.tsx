@@ -1,6 +1,9 @@
 "use client";
 
+import { useId } from "react";
+
 interface NumberFieldProps {
+  id?: string;
   label: string;
   value: number;
   onChange: (value: number) => void;
@@ -9,12 +12,16 @@ interface NumberFieldProps {
   suffix?: string;
 }
 
-export default function NumberField({ label, value, onChange, min = 1, max, suffix }: NumberFieldProps) {
+export default function NumberField({ id, label, value, onChange, min = 1, max, suffix }: NumberFieldProps) {
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
+      <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
       <div className="relative">
         <input
+          id={inputId}
           type="number"
           min={min}
           max={max}

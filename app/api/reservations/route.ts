@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
-import { firstError, validatePositiveInt, validateEnum } from "@/lib/validation";
-import { VALID_RESERVATION_STATUSES } from "@/lib/constants";
+import { firstError, validatePositiveInt, validateEnum, validateMaxLength } from "@/lib/validation";
+import { VALID_RESERVATION_STATUSES, DEFAULT_RESERVATION_DURATION, MAX_TEXT_LENGTHS } from "@/lib/constants";
 
 export async function GET(request: Request) {
   try {
@@ -8,9 +8,13 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const date = url.searchParams.get("date");
     const status = url.searchParams.get("status");
+    const limitParam = Number(url.searchParams.get("limit") || (date ? 150 : 250));
+    const limit = Number.isFinite(limitParam)
+      ? Math.min(Math.max(Math.trunc(limitParam), 1), 500)
+      : (date ? 150 : 250);
 
     let query = "SELECT r.*, t.name as table_name FROM reservations r LEFT JOIN tables t ON r.table_id = t.id WHERE 1=1";
-    const params: string[] = [];
+    const params: (string | number)[] = [];
 
     if (date) {
       query += " AND r.reservation_date = ?";
@@ -21,7 +25,8 @@ export async function GET(request: Request) {
       params.push(status);
     }
 
-    query += " ORDER BY r.reservation_date ASC, r.reservation_time ASC";
+    query += " ORDER BY r.reservation_date ASC, r.reservation_time ASC LIMIT ?";
+    params.push(limit);
 
     const reservations = db.prepare(query).all(...params);
     return Response.json(reservations);
@@ -48,6 +53,10 @@ export async function POST(request: Request) {
       validatePositiveInt(party_size, "party_size"),
       validatePositiveInt(duration_minutes, "duration_minutes"),
       validateEnum(body.status, "status", VALID_RESERVATION_STATUSES),
+      validateMaxLength(guest_name, "guest_name", MAX_TEXT_LENGTHS.guestName),
+      validateMaxLength(guest_email, "guest_email", MAX_TEXT_LENGTHS.guestEmail),
+      validateMaxLength(guest_phone, "guest_phone", MAX_TEXT_LENGTHS.guestPhone),
+      validateMaxLength(notes, "notes", MAX_TEXT_LENGTHS.reservationNotes),
     );
     if (validationError) {
       return Response.json({ error: validationError }, { status: 400 });
@@ -80,7 +89,7 @@ export async function POST(request: Request) {
           AND time(?, '+' || ? || ' minutes') > time(reservation_time)
           AND time(reservation_time, '+' || duration_minutes || ' minutes') > time(?)
         LIMIT 1
-      `).get(table_id, reservation_date, reservation_time, duration_minutes || 120, reservation_time);
+      `).get(table_id, reservation_date, reservation_time, duration_minutes || DEFAULT_RESERVATION_DURATION, reservation_time);
 
       if (overlap) {
         return Response.json(
@@ -101,7 +110,7 @@ export async function POST(request: Request) {
       table_id || null,
       reservation_date,
       reservation_time,
-      duration_minutes || 120,
+      duration_minutes || DEFAULT_RESERVATION_DURATION,
       notes || "",
     );
 

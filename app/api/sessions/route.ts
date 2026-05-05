@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
-import { firstError, validatePositiveInt, validateNonNegativeNumber, validateEnum } from "@/lib/validation";
-import { VALID_RATE_TYPES, DEFAULT_COVER_CHARGE } from "@/lib/constants";
+import { firstError, validatePositiveInt, validateNonNegativeNumber, validateEnum, validateMaxLength } from "@/lib/validation";
+import { VALID_RATE_TYPES, DEFAULT_COVER_CHARGE, MAX_TEXT_LENGTHS } from "@/lib/constants";
 
 export async function GET(request: Request) {
   try {
@@ -58,6 +58,7 @@ export async function POST(request: Request) {
       validatePositiveInt(party_size, "party_size"),
       validateNonNegativeNumber(cover_charge_per_person, "cover_charge_per_person"),
       validateEnum(rate_type, "rate_type", VALID_RATE_TYPES),
+      validateMaxLength(party_name, "party_name", MAX_TEXT_LENGTHS.partyName),
     );
     if (validationError) {
       return Response.json({ error: validationError }, { status: 400 });

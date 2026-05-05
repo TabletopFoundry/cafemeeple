@@ -1,4 +1,6 @@
 import { getDb } from "@/lib/db";
+import { firstError, validatePositiveInt, validateMaxLength } from "@/lib/validation";
+import { MAX_TEXT_LENGTHS } from "@/lib/constants";
 
 export async function GET(
   _request: Request,
@@ -29,6 +31,15 @@ export async function POST(
       return Response.json({ error: "Guest name is required" }, { status: 400 });
     }
 
+    const validationError = firstError(
+      validatePositiveInt(party_size, "party_size"),
+      validateMaxLength(guest_name, "guest_name", MAX_TEXT_LENGTHS.guestName),
+      validateMaxLength(guest_email, "guest_email", MAX_TEXT_LENGTHS.guestEmail),
+    );
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
+    }
+
     const event = db.prepare("SELECT * FROM events WHERE id = ?").get(id) as { capacity: number } | undefined;
     if (!event) {
       return Response.json({ error: "Event not found" }, { status: 404 });
@@ -38,9 +49,9 @@ export async function POST(
 
     const rsvpTx = db.transaction(() => {
       const currentRsvps = db.prepare(
-        "SELECT SUM(party_size) as total FROM rsvps WHERE event_id = ?"
-      ).get(id) as { total: number | null };
-      const currentTotal = currentRsvps.total ?? 0;
+        "SELECT COALESCE(SUM(party_size), 0) as total FROM rsvps WHERE event_id = ?"
+      ).get(id) as { total: number };
+      const currentTotal = currentRsvps.total;
 
       if (currentTotal + newPartySize > event.capacity) {
         throw new Error("CAPACITY_EXCEEDED");
@@ -51,8 +62,11 @@ export async function POST(
         VALUES (?, ?, ?, ?)
       `).run(id, guest_name, guest_email || "", newPartySize);
 
+      const updatedTotal = db.prepare(
+        "SELECT COALESCE(SUM(party_size), 0) as total FROM rsvps WHERE event_id = ?"
+      ).get(id) as { total: number };
       db.prepare("UPDATE events SET rsvp_count = ? WHERE id = ?")
-        .run(currentTotal + newPartySize, id);
+        .run(updatedTotal.total, id);
 
       return result;
     });

@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { ErrorMessage, EmptyState, LoadingCard } from "@/components/ui";
 import { Plus } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { ErrorMessage, EmptyState, LoadingCard } from "@/components/ui";
+import { VALID_EVENT_TYPES } from "@/lib/constants";
 import { useFetch } from "@/hooks/useFetch";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { EventItem, Rsvp } from "@/lib/types";
 import EventCard from "./components/EventCard";
 import EventModal from "./components/EventModal";
 import RsvpModal from "./components/RsvpModal";
-import { VALID_EVENT_TYPES } from "@/lib/constants";
 
 export default function EventsPage() {
   usePageTitle("Events");
@@ -20,7 +20,7 @@ export default function EventsPage() {
   const [viewingRsvps, setViewingRsvps] = useState<EventItem | null>(null);
   const [rsvps, setRsvps] = useState<Rsvp[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-  const { data: events, loading, error, refresh } = useFetch<EventItem[]>("/api/events");
+  const { data: events, loading, error, refresh } = useFetch<EventItem[]>("/api/events?limit=100");
   const { addToast } = useToast();
   const eventList = events ?? [];
 
@@ -32,6 +32,15 @@ export default function EventsPage() {
   const handleEventSaved = () => {
     closeEventModal();
     refresh();
+  };
+
+  const refreshRsvps = async (eventId: number) => {
+    const rsvpRes = await fetch(`/api/events/${eventId}/rsvps`);
+    if (!rsvpRes.ok) {
+      const data = await rsvpRes.json().catch(() => null) as { error?: string } | null;
+      throw new Error(data?.error || "Failed to load RSVPs");
+    }
+    setRsvps(await rsvpRes.json());
   };
 
   const handleDelete = async (id: number) => {
@@ -53,32 +62,35 @@ export default function EventsPage() {
   const viewRsvps = async (event: EventItem) => {
     setViewingRsvps(event);
     try {
-      const res = await fetch(`/api/events/${event.id}/rsvps`);
-      if (res.ok) setRsvps(await res.json());
-      else throw new Error("Failed to load RSVPs");
-    } catch {
+      await refreshRsvps(event.id);
+    } catch (err) {
       setRsvps([]);
-      addToast("Failed to load RSVPs", "error");
+      addToast(err instanceof Error ? err.message : "Failed to load RSVPs", "error");
     }
   };
 
   const addRsvp = async (eventId: number, guestName: string, guestEmail: string, partySize: number) => {
-    try {
-      const res = await fetch(`/api/events/${eventId}/rsvps`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guest_name: guestName, guest_email: guestEmail, party_size: partySize }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to add RSVP");
-      }
-      const rsvpRes = await fetch(`/api/events/${eventId}/rsvps`);
-      if (rsvpRes.ok) setRsvps(await rsvpRes.json());
-      refresh();
-    } catch (err) {
-      addToast(err instanceof Error ? err.message : "Failed to add RSVP", "error");
+    const res = await fetch(`/api/events/${eventId}/rsvps`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ guest_name: guestName, guest_email: guestEmail, party_size: partySize }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null) as { error?: string } | null;
+      throw new Error(data?.error || "Failed to add RSVP");
     }
+    await refreshRsvps(eventId);
+    refresh();
+  };
+
+  const deleteRsvp = async (eventId: number, rsvpId: number) => {
+    const res = await fetch(`/api/events/${eventId}/rsvps/${rsvpId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null) as { error?: string } | null;
+      throw new Error(data?.error || "Failed to remove RSVP");
+    }
+    await refreshRsvps(eventId);
+    refresh();
   };
 
   if (loading)
@@ -143,7 +155,15 @@ export default function EventsPage() {
         <EventModal event={editingEvent} eventTypes={VALID_EVENT_TYPES} onClose={closeEventModal} onSaved={handleEventSaved} />
       )}
 
-      {viewingRsvps && <RsvpModal event={viewingRsvps} rsvps={rsvps} onClose={() => setViewingRsvps(null)} onAddRsvp={addRsvp} />}
+      {viewingRsvps && (
+        <RsvpModal
+          event={viewingRsvps}
+          rsvps={rsvps}
+          onClose={() => setViewingRsvps(null)}
+          onAddRsvp={addRsvp}
+          onDeleteRsvp={deleteRsvp}
+        />
+      )}
 
       {deleteConfirm !== null && (
         <ConfirmDialog

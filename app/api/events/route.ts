@@ -1,14 +1,19 @@
 import { getDb } from "@/lib/db";
-import { firstError, validatePositiveInt, validateEnum } from "@/lib/validation";
-import { VALID_EVENT_TYPES, VALID_EVENT_STATUSES, DEFAULT_EVENT_CAPACITY } from "@/lib/constants";
+import { firstError, validatePositiveInt, validateEnum, validateMaxLength } from "@/lib/validation";
+import { VALID_EVENT_TYPES, VALID_EVENT_STATUSES, DEFAULT_EVENT_CAPACITY, MAX_TEXT_LENGTHS } from "@/lib/constants";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const db = getDb();
+    const url = new URL(request.url);
+    const limitParam = Number(url.searchParams.get("limit") || 100);
+    const limit = Number.isFinite(limitParam)
+      ? Math.min(Math.max(Math.trunc(limitParam), 1), 300)
+      : 100;
     const events = db.prepare(`
-      SELECT e.*, (SELECT COUNT(*) FROM rsvps r WHERE r.event_id = e.id) as actual_rsvps
-      FROM events e ORDER BY e.event_date ASC
-    `).all();
+      SELECT e.*, COALESCE((SELECT SUM(r.party_size) FROM rsvps r WHERE r.event_id = e.id), 0) as actual_rsvps
+      FROM events e ORDER BY e.event_date ASC LIMIT ?
+    `).all(limit);
     return Response.json(events);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -33,6 +38,8 @@ export async function POST(request: Request) {
       validatePositiveInt(capacity, "capacity"),
       validateEnum(event_type, "event_type", VALID_EVENT_TYPES),
       validateEnum(status, "status", VALID_EVENT_STATUSES),
+      validateMaxLength(title, "title", MAX_TEXT_LENGTHS.eventTitle),
+      validateMaxLength(description, "description", MAX_TEXT_LENGTHS.eventDescription),
     );
     if (validationError) {
       return Response.json({ error: validationError }, { status: 400 });

@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
-import { firstError, validateRequired, validatePositiveInt, validateRange, validateEnum } from "@/lib/validation";
-import { VALID_TABLE_SHAPES, VALID_TABLE_STATUSES, TABLE_SECTIONS } from "@/lib/constants";
+import { firstError, validateRequired, validatePositiveInt, validateRange, validateEnum, validateMaxLength } from "@/lib/validation";
+import { VALID_TABLE_SHAPES, VALID_TABLE_STATUSES, TABLE_SECTIONS, MAX_TEXT_LENGTHS } from "@/lib/constants";
 
 export async function PUT(
   request: Request,
@@ -21,6 +21,7 @@ export async function PUT(
       validateEnum(body.shape, "shape", VALID_TABLE_SHAPES),
       validateEnum(body.section, "section", TABLE_SECTIONS),
       validateEnum(body.status, "status", VALID_TABLE_STATUSES),
+      validateMaxLength(body.name, "name", MAX_TEXT_LENGTHS.tableName),
     );
     if (validationError) {
       return Response.json({ error: validationError }, { status: 400 });
@@ -67,33 +68,63 @@ export async function DELETE(
   const { id } = await params;
   try {
     const db = getDb();
+    const deleteTableTx = db.transaction(() => {
+      const activeSession = db.prepare(
+        "SELECT id FROM sessions WHERE table_id = ? AND status = 'active' LIMIT 1"
+      ).get(id);
+      if (activeSession) {
+        throw new Error("ACTIVE_SESSION");
+      }
 
-    // Prevent deletion if table has active sessions
-    const activeSession = db.prepare(
-      "SELECT id FROM sessions WHERE table_id = ? AND status = 'active' LIMIT 1"
-    ).get(id);
-    if (activeSession) {
-      return Response.json(
-        { error: "Cannot delete a table with an active session" },
-        { status: 409 },
-      );
+      const upcomingReservation = db.prepare(
+        "SELECT id FROM reservations WHERE table_id = ? AND status IN ('confirmed', 'pending') AND reservation_date >= date('now') LIMIT 1"
+      ).get(id);
+      if (upcomingReservation) {
+        throw new Error("UPCOMING_RESERVATION");
+      }
+
+      const historicalUsage = db.prepare(`
+        SELECT
+          EXISTS(SELECT 1 FROM sessions WHERE table_id = ?) as has_sessions,
+          EXISTS(SELECT 1 FROM reservations WHERE table_id = ?) as has_reservations
+      `).get(id, id) as { has_sessions: number; has_reservations: number };
+      if (historicalUsage.has_sessions || historicalUsage.has_reservations) {
+        throw new Error("HAS_HISTORY");
+      }
+
+      const result = db.prepare("DELETE FROM tables WHERE id = ?").run(id);
+      if (result.changes === 0) {
+        throw new Error("TABLE_NOT_FOUND");
+      }
+    });
+
+    try {
+      deleteTableTx.immediate();
+    } catch (txError) {
+      if (txError instanceof Error && txError.message === "ACTIVE_SESSION") {
+        return Response.json(
+          { error: "Cannot delete a table with an active session" },
+          { status: 409 },
+        );
+      }
+      if (txError instanceof Error && txError.message === "UPCOMING_RESERVATION") {
+        return Response.json(
+          { error: "Cannot delete a table with upcoming reservations" },
+          { status: 409 },
+        );
+      }
+      if (txError instanceof Error && txError.message === "HAS_HISTORY") {
+        return Response.json(
+          { error: "Cannot delete a table with session or reservation history. Mark it as maintenance instead." },
+          { status: 409 },
+        );
+      }
+      if (txError instanceof Error && txError.message === "TABLE_NOT_FOUND") {
+        return Response.json({ error: "Table not found" }, { status: 404 });
+      }
+      throw txError;
     }
 
-    // Prevent deletion if table has upcoming reservations
-    const upcomingReservation = db.prepare(
-      "SELECT id FROM reservations WHERE table_id = ? AND status IN ('confirmed', 'pending') AND reservation_date >= date('now') LIMIT 1"
-    ).get(id);
-    if (upcomingReservation) {
-      return Response.json(
-        { error: "Cannot delete a table with upcoming reservations" },
-        { status: 409 },
-      );
-    }
-
-    const result = db.prepare("DELETE FROM tables WHERE id = ?").run(id);
-    if (result.changes === 0) {
-      return Response.json({ error: "Table not found" }, { status: 404 });
-    }
     return Response.json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

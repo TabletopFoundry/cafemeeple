@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import { conditionScoreForLabel, CONDITION_LABELS } from "@/lib/game-utils";
-import { firstError, validatePositiveInt, validateRange, validateEnum } from "@/lib/validation";
+import { firstError, validatePositiveInt, validateRange, validateEnum, validateMaxLength } from "@/lib/validation";
+import { MAX_TEXT_LENGTHS } from "@/lib/constants";
 import type { Game } from "@/lib/types";
 
 type GameRow = Pick<
@@ -62,6 +63,11 @@ export async function PUT(
       validatePositiveInt(body.copies_total, "copies_total"),
       validateEnum(body.condition, "condition", CONDITION_LABELS),
       validatePositiveInt(body.replacement_threshold, "replacement_threshold"),
+      validateMaxLength(body.title, "title", MAX_TEXT_LENGTHS.gameTitle),
+      validateMaxLength(body.category, "category", MAX_TEXT_LENGTHS.gameCategory),
+      validateMaxLength(body.description, "description", MAX_TEXT_LENGTHS.gameDescription),
+      validateMaxLength(body.image_url, "image_url", MAX_TEXT_LENGTHS.imageUrl),
+      validateMaxLength(body.shelf_location, "shelf_location", MAX_TEXT_LENGTHS.shelfLocation),
     );
     if (validationError) {
       return Response.json({ error: validationError }, { status: 400 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { ArrowLeftRight, Search } from "lucide-react";
 import type { GameSummary, Session } from "@/lib/types";
 
@@ -35,6 +36,8 @@ export default function CheckoutForm({
   onActiveIndexChange,
   onCheckout,
 }: CheckoutFormProps) {
+  const sessionFieldId = useId();
+  const gameFieldId = useId();
   const options = filteredGames.slice(0, 10);
   const isOpen = !!(gameSearch && !selectedGame);
 
@@ -46,8 +49,9 @@ export default function CheckoutForm({
       </h2>
       <div className="grid sm:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Active Session</label>
+          <label htmlFor={sessionFieldId} className="block text-sm font-medium text-gray-700 mb-1">Active Session</label>
           <select
+            id={sessionFieldId}
             value={selectedSession || ""}
             onChange={(e) => onSessionChange(parseInt(e.target.value) || null)}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
@@ -61,10 +65,11 @@ export default function CheckoutForm({
           </select>
         </div>
         <div className="relative">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Game</label>
+          <label htmlFor={gameFieldId} className="block text-sm font-medium text-gray-700 mb-1">Game</label>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
+              id={gameFieldId}
               type="text"
               placeholder="Search games..."
               value={gameSearch}

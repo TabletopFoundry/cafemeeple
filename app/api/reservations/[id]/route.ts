@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
-import { firstError, validatePositiveInt, validateEnum } from "@/lib/validation";
-import { VALID_RESERVATION_STATUSES } from "@/lib/constants";
+import { firstError, validatePositiveInt, validateEnum, validateMaxLength } from "@/lib/validation";
+import { VALID_RESERVATION_STATUSES, MAX_TEXT_LENGTHS } from "@/lib/constants";
 
 export async function PUT(
   request: Request,
@@ -23,6 +23,10 @@ export async function PUT(
       validatePositiveInt(body.party_size, "party_size"),
       validatePositiveInt(body.duration_minutes, "duration_minutes"),
       validateEnum(body.status, "status", VALID_RESERVATION_STATUSES),
+      validateMaxLength(body.guest_name, "guest_name", MAX_TEXT_LENGTHS.guestName),
+      validateMaxLength(body.guest_email, "guest_email", MAX_TEXT_LENGTHS.guestEmail),
+      validateMaxLength(body.guest_phone, "guest_phone", MAX_TEXT_LENGTHS.guestPhone),
+      validateMaxLength(body.notes, "notes", MAX_TEXT_LENGTHS.reservationNotes),
     );
     if (validationError) {
       return Response.json({ error: validationError }, { status: 400 });

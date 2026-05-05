@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
-import { firstError, validateRequired, validatePositiveInt, validateRange, validateEnum } from "@/lib/validation";
-import { VALID_TABLE_SHAPES, TABLE_SECTIONS } from "@/lib/constants";
+import { firstError, validateRequired, validatePositiveInt, validateRange, validateEnum, validateMaxLength } from "@/lib/validation";
+import { VALID_TABLE_SHAPES, TABLE_SECTIONS, MAX_TEXT_LENGTHS } from "@/lib/constants";
 
 export async function GET() {
   try {
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       validateRange(y_position, "y_position", 0, 100),
       validateEnum(shape, "shape", VALID_TABLE_SHAPES),
       validateEnum(section, "section", TABLE_SECTIONS),
+      validateMaxLength(name, "name", MAX_TEXT_LENGTHS.tableName),
     );
     if (validationError) {
       return Response.json({ error: validationError }, { status: 400 });
