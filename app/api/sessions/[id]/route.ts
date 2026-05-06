@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/db";
-import { conditionScoreForLabel } from "@/lib/game-utils";
+import { firstError, validateEnum, validateRequired } from "@/lib/validation";
 
 export async function PUT(
   request: Request,
@@ -11,8 +11,12 @@ export async function PUT(
     const body = await request.json();
     const { action } = body;
 
-    if (action !== "checkout") {
-      return Response.json({ error: "Unknown action" }, { status: 400 });
+    const validationError = firstError(
+      validateRequired(action, "action"),
+      validateEnum(action, "action", ["checkout"] as const),
+    );
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
     }
 
     const session = db.prepare(`
@@ -22,6 +26,7 @@ export async function PUT(
       WHERE s.id = ?
     `).get(id) as
       | {
+          status: string;
           table_id: number;
           table_name: string;
           party_name: string;
@@ -35,7 +40,7 @@ export async function PUT(
       return Response.json({ error: "Session not found" }, { status: 404 });
     }
 
-    if ((session as { status?: string }).status !== "active") {
+    if (session.status !== "active") {
       return Response.json({ error: "Session is already closed" }, { status: 409 });
     }
 
@@ -50,23 +55,21 @@ export async function PUT(
       ).run(total, id);
       db.prepare("UPDATE tables SET status = 'available' WHERE id = ?").run(session.table_id);
 
-      // Get unreturned games before marking them returned
-      const unreturned = db.prepare(
-        "SELECT game_id FROM game_checkouts WHERE session_id = ? AND returned_at IS NULL"
-      ).all(id) as { game_id: number }[];
+      const unreturned = db.prepare(`
+        SELECT gc.id as checkout_id, gc.game_id, g.condition, g.condition_score
+        FROM game_checkouts gc
+        JOIN games g ON g.id = gc.game_id
+        WHERE gc.session_id = ? AND gc.returned_at IS NULL
+      `).all(id) as { checkout_id: number; game_id: number; condition: string; condition_score: number }[];
 
-      db.prepare(
-        `UPDATE game_checkouts SET returned_at = datetime('now'), return_condition = COALESCE(return_condition, 'Good') WHERE session_id = ? AND returned_at IS NULL`,
-      ).run(id);
+      for (const { checkout_id, game_id, condition, condition_score } of unreturned) {
+        db.prepare(
+          `UPDATE game_checkouts SET returned_at = datetime('now'), return_condition = COALESCE(return_condition, ?) WHERE id = ?`,
+        ).run(condition, checkout_id);
 
-      // Restore inventory and update condition metadata for each auto-returned game
-      const defaultConditionScore = conditionScoreForLabel("Good");
-      for (const { game_id } of unreturned) {
         db.prepare(`
           UPDATE games SET
             copies_available = copies_available + 1,
-            condition = 'Good',
-            condition_score = ?,
             last_inspected_at = datetime('now'),
             needs_replacement = CASE
               WHEN ? <= 2 THEN 1
@@ -75,7 +78,7 @@ export async function PUT(
             END,
             updated_at = datetime('now')
           WHERE id = ?
-        `).run(defaultConditionScore, defaultConditionScore, game_id, game_id);
+        `).run(condition_score, game_id, game_id);
       }
 
       return { autoReturnedCount: unreturned.length };
