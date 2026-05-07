@@ -30,6 +30,7 @@ export default function CheckoutPage() {
   const [tab, setTab] = useState<"active" | "history">("active");
   const [returnModal, setReturnModal] = useState<Checkout | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
   const { addToast } = useToast();
   const { data, loading, error, refresh } = useMultiFetch<CheckoutPageData>({
     sessions: "/api/sessions?status=active",
@@ -42,7 +43,8 @@ export default function CheckoutPage() {
   const checkouts = data?.checkouts ?? [];
 
   const handleCheckoutGame = async () => {
-    if (!selectedSession || !selectedGame) return;
+    if (!selectedSession || !selectedGame || isSubmittingCheckout) return;
+    setIsSubmittingCheckout(true);
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -61,6 +63,8 @@ export default function CheckoutPage() {
       refresh();
     } catch (err) {
       addToast(err instanceof Error ? err.message : "Failed to checkout game", "error");
+    } finally {
+      setIsSubmittingCheckout(false);
     }
   };
 
@@ -137,6 +141,7 @@ export default function CheckoutPage() {
           onGameSelect={handleGameSelect}
           onActiveIndexChange={setActiveIndex}
           onCheckout={handleCheckoutGame}
+          isSubmitting={isSubmittingCheckout}
         />
       )}
 

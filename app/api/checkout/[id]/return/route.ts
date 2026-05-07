@@ -21,22 +21,22 @@ export async function POST(
       return Response.json({ error: validationError }, { status: 400 });
     }
 
-    const checkout = db.prepare("SELECT * FROM game_checkouts WHERE id = ?").get(id) as
-      | { game_id: number; returned_at: string | null }
-      | undefined;
-
-    if (!checkout) {
-      return Response.json({ error: "Checkout not found" }, { status: 404 });
-    }
-
-    if (checkout.returned_at) {
-      return Response.json({ error: "Game already returned" }, { status: 400 });
-    }
-
     const condition = return_condition || "Good";
     const conditionScore = conditionScoreForLabel(condition);
 
     const returnTx = db.transaction(() => {
+      const checkout = db.prepare("SELECT * FROM game_checkouts WHERE id = ?").get(id) as
+        | { game_id: number; returned_at: string | null }
+        | undefined;
+
+      if (!checkout) {
+        throw new Error("CHECKOUT_NOT_FOUND");
+      }
+
+      if (checkout.returned_at) {
+        throw new Error("CHECKOUT_ALREADY_RETURNED");
+      }
+
       db.prepare(
         `UPDATE game_checkouts SET returned_at = datetime('now'), return_condition = ?, notes = ? WHERE id = ?`,
       ).run(condition, notes || "", id);
@@ -61,7 +61,17 @@ export async function POST(
       ).run(condition, conditionScore, conditionScore, checkout.game_id);
     });
 
-    returnTx();
+    try {
+      returnTx();
+    } catch (txError) {
+      if (txError instanceof Error && txError.message === "CHECKOUT_NOT_FOUND") {
+        return Response.json({ error: "Checkout not found" }, { status: 404 });
+      }
+      if (txError instanceof Error && txError.message === "CHECKOUT_ALREADY_RETURNED") {
+        return Response.json({ error: "Game already returned" }, { status: 400 });
+      }
+      throw txError;
+    }
 
     const updated = db.prepare(`
       SELECT gc.*, g.title as game_title

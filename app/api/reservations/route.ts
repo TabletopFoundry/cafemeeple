@@ -62,57 +62,74 @@ export async function POST(request: Request) {
       return Response.json({ error: validationError }, { status: 400 });
     }
 
-    // Validate table exists and has sufficient capacity
-    if (table_id) {
-      const table = db.prepare("SELECT id, capacity FROM tables WHERE id = ?").get(table_id) as
-        | { id: number; capacity: number }
-        | undefined;
-      if (!table) {
+    const createReservationTx = db.transaction(() => {
+      const effectivePartySize = party_size || 2;
+      const effectiveDuration = duration_minutes || DEFAULT_RESERVATION_DURATION;
+
+      if (table_id) {
+        const table = db.prepare("SELECT id, capacity FROM tables WHERE id = ?").get(table_id) as
+          | { id: number; capacity: number }
+          | undefined;
+        if (!table) {
+          throw new Error("TABLE_NOT_FOUND");
+        }
+        if (effectivePartySize > table.capacity) {
+          throw new Error(`TABLE_CAPACITY:${table.capacity}`);
+        }
+
+        const overlap = db.prepare(`
+          SELECT id FROM reservations
+          WHERE table_id = ?
+            AND reservation_date = ?
+            AND status IN ('confirmed', 'pending')
+            AND time(?, '+' || ? || ' minutes') > time(reservation_time)
+            AND time(reservation_time, '+' || duration_minutes || ' minutes') > time(?)
+          LIMIT 1
+        `).get(table_id, reservation_date, reservation_time, effectiveDuration, reservation_time);
+
+        if (overlap) {
+          throw new Error("TABLE_OVERLAP");
+        }
+      }
+
+      return db.prepare(`
+        INSERT INTO reservations (guest_name, guest_email, guest_phone, party_size, table_id, reservation_date, reservation_time, duration_minutes, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        guest_name,
+        guest_email || "",
+        guest_phone || "",
+        effectivePartySize,
+        table_id || null,
+        reservation_date,
+        reservation_time,
+        effectiveDuration,
+        notes || "",
+      );
+    });
+
+    let result;
+    try {
+      result = createReservationTx();
+    } catch (txError) {
+      if (txError instanceof Error && txError.message === "TABLE_NOT_FOUND") {
         return Response.json({ error: "Table not found" }, { status: 404 });
       }
-      const effectivePartySize = party_size || 2;
-      if (effectivePartySize > table.capacity) {
+      if (txError instanceof Error && txError.message.startsWith("TABLE_CAPACITY:")) {
+        const capacity = txError.message.split(":")[1] || "0";
         return Response.json(
-          { error: `Party size exceeds table capacity (${table.capacity})` },
+          { error: `Party size exceeds table capacity (${capacity})` },
           { status: 400 },
         );
       }
-    }
-
-    // Check for time-slot overlaps with existing reservations on the same table
-    if (table_id) {
-      const overlap = db.prepare(`
-        SELECT id FROM reservations
-        WHERE table_id = ?
-          AND reservation_date = ?
-          AND status IN ('confirmed', 'pending')
-          AND time(?, '+' || ? || ' minutes') > time(reservation_time)
-          AND time(reservation_time, '+' || duration_minutes || ' minutes') > time(?)
-        LIMIT 1
-      `).get(table_id, reservation_date, reservation_time, duration_minutes || DEFAULT_RESERVATION_DURATION, reservation_time);
-
-      if (overlap) {
+      if (txError instanceof Error && txError.message === "TABLE_OVERLAP") {
         return Response.json(
           { error: "This table already has a reservation during that time slot" },
           { status: 409 },
         );
       }
+      throw txError;
     }
-
-    const result = db.prepare(`
-      INSERT INTO reservations (guest_name, guest_email, guest_phone, party_size, table_id, reservation_date, reservation_time, duration_minutes, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      guest_name,
-      guest_email || "",
-      guest_phone || "",
-      party_size || 2,
-      table_id || null,
-      reservation_date,
-      reservation_time,
-      duration_minutes || DEFAULT_RESERVATION_DURATION,
-      notes || "",
-    );
 
     const reservation = db.prepare("SELECT * FROM reservations WHERE id = ?").get(result.lastInsertRowid);
     return Response.json(reservation, { status: 201 });

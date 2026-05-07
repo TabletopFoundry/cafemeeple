@@ -16,6 +16,7 @@ interface CheckoutFormProps {
   selectedGame: number | null;
   gameSearch: string;
   activeIndex: number;
+  isSubmitting: boolean;
   onSessionChange: (sessionId: number | null) => void;
   onGameSearchChange: (value: string) => void;
   onGameSelect: (gameId: number, title: string) => void;
@@ -30,6 +31,7 @@ export default function CheckoutForm({
   selectedGame,
   gameSearch,
   activeIndex,
+  isSubmitting,
   onSessionChange,
   onGameSearchChange,
   onGameSelect,
@@ -139,10 +141,11 @@ export default function CheckoutForm({
         <div className="flex items-end">
           <button
             onClick={onCheckout}
-            disabled={!selectedSession || !selectedGame}
+            disabled={!selectedSession || !selectedGame || isSubmitting}
+            aria-busy={isSubmitting}
             className="w-full bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Check Out Game
+            {isSubmitting ? "Checking Out…" : "Check Out Game"}
           </button>
         </div>
       </div>

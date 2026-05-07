@@ -43,44 +43,84 @@ export async function PUT(
       return Response.json({ error: "No fields to update" }, { status: 400 });
     }
 
-    // Check for time-slot overlaps when table_id, date, or time changes
-    const effectiveTableId = body.table_id;
-    const effectiveDate = body.reservation_date;
-    const effectiveTime = body.reservation_time;
-    if (effectiveTableId !== undefined || effectiveDate !== undefined || effectiveTime !== undefined) {
-      const current = db.prepare("SELECT table_id, reservation_date, reservation_time, duration_minutes FROM reservations WHERE id = ?").get(id) as
-        | { table_id: number | null; reservation_date: string; reservation_time: string; duration_minutes: number }
-        | undefined;
-      if (current) {
-        const checkTableId = effectiveTableId ?? current.table_id;
-        const checkDate = effectiveDate ?? current.reservation_date;
-        const checkTime = effectiveTime ?? current.reservation_time;
-        const checkDuration = body.duration_minutes ?? current.duration_minutes;
-
-        if (checkTableId) {
-          const overlap = db.prepare(`
-            SELECT id FROM reservations
-            WHERE table_id = ?
-              AND reservation_date = ?
-              AND status IN ('confirmed', 'pending')
-              AND id != ?
-              AND time(?, '+' || ? || ' minutes') > time(reservation_time)
-              AND time(reservation_time, '+' || duration_minutes || ' minutes') > time(?)
-            LIMIT 1
-          `).get(checkTableId, checkDate, id, checkTime, checkDuration, checkTime);
-
-          if (overlap) {
-            return Response.json(
-              { error: "This table already has a reservation during that time slot" },
-              { status: 409 },
-            );
+    const updateReservationTx = db.transaction(() => {
+      const current = db.prepare("SELECT table_id, reservation_date, reservation_time, duration_minutes, party_size FROM reservations WHERE id = ?").get(id) as
+        | {
+            table_id: number | null;
+            reservation_date: string;
+            reservation_time: string;
+            duration_minutes: number;
+            party_size: number;
           }
+        | undefined;
+
+      if (!current) {
+        throw new Error("RESERVATION_NOT_FOUND");
+      }
+
+      const checkTableId = body.table_id ?? current.table_id;
+      const checkDate = body.reservation_date ?? current.reservation_date;
+      const checkTime = body.reservation_time ?? current.reservation_time;
+      const checkDuration = body.duration_minutes ?? current.duration_minutes;
+      const checkPartySize = body.party_size ?? current.party_size;
+
+      if (checkTableId) {
+        const table = db.prepare("SELECT id, capacity FROM tables WHERE id = ?").get(checkTableId) as
+          | { id: number; capacity: number }
+          | undefined;
+        if (!table) {
+          throw new Error("TABLE_NOT_FOUND");
+        }
+        if (checkPartySize && checkPartySize > table.capacity) {
+          throw new Error(`TABLE_CAPACITY:${table.capacity}`);
+        }
+
+        const overlap = db.prepare(`
+          SELECT id FROM reservations
+          WHERE table_id = ?
+            AND reservation_date = ?
+            AND status IN ('confirmed', 'pending')
+            AND id != ?
+            AND time(?, '+' || ? || ' minutes') > time(reservation_time)
+            AND time(reservation_time, '+' || duration_minutes || ' minutes') > time(?)
+          LIMIT 1
+        `).get(checkTableId, checkDate, id, checkTime, checkDuration, checkTime);
+
+        if (overlap) {
+          throw new Error("TABLE_OVERLAP");
         }
       }
+
+      values.push(id);
+      return db.prepare(`UPDATE reservations SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+    });
+
+    let result;
+    try {
+      result = updateReservationTx();
+    } catch (txError) {
+      if (txError instanceof Error && txError.message === "RESERVATION_NOT_FOUND") {
+        return Response.json({ error: "Reservation not found" }, { status: 404 });
+      }
+      if (txError instanceof Error && txError.message === "TABLE_NOT_FOUND") {
+        return Response.json({ error: "Table not found" }, { status: 404 });
+      }
+      if (txError instanceof Error && txError.message.startsWith("TABLE_CAPACITY:")) {
+        const capacity = txError.message.split(":")[1] || "0";
+        return Response.json(
+          { error: `Party size exceeds table capacity (${capacity})` },
+          { status: 400 },
+        );
+      }
+      if (txError instanceof Error && txError.message === "TABLE_OVERLAP") {
+        return Response.json(
+          { error: "This table already has a reservation during that time slot" },
+          { status: 409 },
+        );
+      }
+      throw txError;
     }
 
-    values.push(id);
-    const result = db.prepare(`UPDATE reservations SET ${fields.join(", ")} WHERE id = ?`).run(...values);
     if (result.changes === 0) {
       return Response.json({ error: "Reservation not found" }, { status: 404 });
     }
