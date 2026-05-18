@@ -60,12 +60,13 @@ Open [http://localhost:3000](http://localhost:3000) to see the landing page.
 
 Navigate to [http://localhost:3000/admin](http://localhost:3000/admin) for the admin dashboard.
 
-The database is automatically created and seeded with sample data on first load:
-- 100+ board games across multiple categories
-- 15 themed tables across 5 sections
-- Sample reservations, events, and RSVPs
-- 30 days of mock session/checkout history
-- 4 active sessions for today
+The database is automatically created and seeded with rich development data on first load:
+- 171 board games covering every catalog category
+- 26 floor-plan tables across all café sections
+- 46 reservations with same-day holds and future bookings
+- 18 events with RSVP activity, including sold-out nights
+- 60 completed sessions plus 5 active tables across the last 30 days
+- 126 checkout records, never-played games, and zero-session tables for edge cases
 
 ### Available Scripts
 
@@ -114,8 +115,33 @@ lib/
 ├── db.ts                       # Database initialization & schema
 ├── types.ts                    # Canonical domain types
 ├── game-utils.ts               # Game condition utilities
-└── seed.ts                     # Seed data (100+ games, tables, etc.)
+└── seed.ts                     # Deterministic development seed data
 ```
+
+## 🌱 Seed Data
+
+The development seed is **deterministic**, **idempotent**, and wrapped in a **single transaction**. It only runs when the database is empty, and production seeding is blocked.
+
+### Dataset highlights
+
+- **Games**: 171 titles across every category, with condition scores, inspection dates, replacement thresholds, and popularity history
+- **Tables**: 26 tables across Main Floor, Quiet Corner, Window Seats, Back Room, Patio, Private Room, Balcony, and Mezzanine
+- **Sessions**: 60 historical sessions spanning the last 30 days plus 5 active sessions in progress
+- **Reservations**: 46 reservations with confirmed, pending, completed, cancelled, and no-show examples
+- **Events**: 18 events across game nights, tournaments, workshops, socials, family events, and specials
+- **Checkouts**: 126 checkout records with heavy hitters, replacement candidates, and never-checked-out edge cases
+- **Edge cases**: maintenance tables, reserved tables, full-capacity events, tables with zero sessions, and shelf titles that have never left the library
+
+### Regenerating locally
+
+If you want to replay the seed from scratch in development, remove the local SQLite files and restart the app:
+
+```bash
+rm -f cafemeeple.db cafemeeple.db-shm cafemeeple.db-wal
+npm run dev
+```
+
+You can also `POST /api/seed`, but the endpoint intentionally **will not overwrite existing data**.
 
 ## 🗄 Database
 
