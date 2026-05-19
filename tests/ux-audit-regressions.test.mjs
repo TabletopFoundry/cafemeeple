@@ -63,3 +63,12 @@ test("mobile admin drawer includes close and escape affordances", () => {
   assert.match(source, /event.key === \"Escape\"/);
   assert.match(source, /document.body.style.overflow = \"hidden\"/);
 });
+
+test("check-in modal caps guest count to the selected table capacity", () => {
+  const source = readSource("app/admin/tables/components/CheckInModal.tsx");
+
+  assert.match(source, /const clampPartySize = \(value: number, max = maxPartySize\) => Math.min\(Math.max\(value, 1\), max\);/);
+  assert.match(source, /party_size: clampPartySize\(current\.party_size, nextTable\?\.capacity \?\? current\.party_size\)/);
+  assert.match(source, /Guest count is capped to match the selected table\./);
+  assert.match(source, /Guest count is capped at \$\{maxPartySize\} for \$\{selectedTable\?\.name \?\? \"this table\"\}\./);
+});

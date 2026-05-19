@@ -54,6 +54,7 @@ function CheckInForm({
 }: CheckInModalProps) {
   const defaultTableId =
     tables.find((table) => table.id === initialTableId)?.id ?? tables[0]?.id ?? 0;
+  const defaultTable = tables.find((table) => table.id === defaultTableId);
   const tableId = useId();
   const partyNameId = useId();
   const guestCountId = useId();
@@ -62,14 +63,17 @@ function CheckInForm({
   const [form, setForm] = useState({
     table_id: defaultTableId,
     party_name: "",
-    party_size: 2,
+    party_size: Math.min(2, defaultTable?.capacity ?? 2),
     rate_type: "per_person",
     cover_charge_per_person: 5,
   });
   const [saving, setSaving] = useState(false);
+  const [capacityMessage, setCapacityMessage] = useState<string | null>(null);
   const { addToast } = useToast();
 
   const selectedTable = tables.find((table) => table.id === form.table_id);
+  const maxPartySize = selectedTable?.capacity ?? 12;
+  const clampPartySize = (value: number, max = maxPartySize) => Math.min(Math.max(value, 1), max);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -112,12 +116,20 @@ function CheckInForm({
           <select
             id={tableId}
             value={form.table_id}
-            onChange={(event) =>
+            onChange={(event) => {
+              const nextTableId = Number(event.target.value);
+              const nextTable = tables.find((table) => table.id === nextTableId);
               setForm((current) => ({
                 ...current,
-                table_id: Number(event.target.value),
-              }))
-            }
+                table_id: nextTableId,
+                party_size: clampPartySize(current.party_size, nextTable?.capacity ?? current.party_size),
+              }));
+              setCapacityMessage(
+                nextTable && form.party_size > nextTable.capacity
+                  ? `${nextTable.name} seats up to ${nextTable.capacity} guests, so the party size was adjusted.`
+                  : null,
+              );
+            }}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
           >
             {tables.map((table) => (
@@ -151,16 +163,29 @@ function CheckInForm({
               id={guestCountId}
               type="number"
               min={1}
-              max={selectedTable?.capacity ?? 12}
+              max={maxPartySize}
               value={form.party_size}
-              onChange={(event) =>
+              onChange={(event) => {
+                const rawPartySize = Number(event.target.value) || 1;
+                const nextPartySize = clampPartySize(rawPartySize);
                 setForm((current) => ({
                   ...current,
-                  party_size: Number(event.target.value) || 1,
-                }))
-              }
+                  party_size: nextPartySize,
+                }));
+                setCapacityMessage(
+                  rawPartySize > maxPartySize
+                    ? `Guest count is capped at ${maxPartySize} for ${selectedTable?.name ?? "this table"}.`
+                    : null,
+                );
+              }}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
             />
+            <p className="mt-1 text-xs text-gray-500" aria-live="polite">
+              {capacityMessage ??
+                (selectedTable
+                  ? `${selectedTable.name} seats up to ${selectedTable.capacity} guests. Guest count is capped to match the selected table.`
+                  : "Select a table to confirm guest capacity.")}
+            </p>
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -217,7 +242,7 @@ function CheckInForm({
           </p>
           <p className="mt-1 text-xs text-gray-500">
             {selectedTable
-              ? `${selectedTable.name} seats up to ${selectedTable.capacity} guests.`
+              ? `${selectedTable.name} is ready for up to ${selectedTable.capacity} guests at the selected rate.`
               : "Select a table."}
           </p>
         </div>
