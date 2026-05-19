@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Bar,
   BarChart,
@@ -12,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ArrowRight } from "lucide-react";
 import { Badge, ErrorMessage, LoadingCard, StatCard } from "@/components/ui";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useFetch } from "@/hooks/useFetch";
@@ -19,9 +21,40 @@ import type { DashboardData } from "@/lib/types";
 
 const BREAKDOWN_COLORS = ["#7c3aed", "#06b6d4", "#f97316", "#10b981"];
 
+type SeedStatus = {
+  seeded: boolean;
+  games: number;
+};
+
+const ALERT_ACTIONS: Record<
+  string,
+  { href: string; label: string }
+> = {
+  replacement: { href: "/admin/games", label: "Review library" },
+  inventory: { href: "/admin/games", label: "Open stock view" },
+  reservations: { href: "/admin/reservations", label: "Review bookings" },
+  capacity: { href: "/admin/events", label: "Review events" },
+  maintenance: { href: "/admin/tables", label: "Open tables" },
+};
+
 export default function DashboardPage() {
   usePageTitle("Dashboard");
-  const { data, loading, error, refresh } = useFetch<DashboardData>("/api/dashboard");
+  const {
+    data,
+    loading,
+    error,
+    refresh,
+  } = useFetch<DashboardData>("/api/dashboard");
+  const {
+    data: seedStatus,
+    loading: seedLoading,
+    refresh: refreshSeedStatus,
+  } = useFetch<SeedStatus>("/api/seed");
+
+  const handleRefresh = () => {
+    refresh();
+    refreshSeedStatus();
+  };
 
   if (loading) {
     return (
@@ -41,14 +74,14 @@ export default function DashboardPage() {
   }
 
   if (error) {
-    return <ErrorMessage message={error} onRetry={refresh} />;
+    return <ErrorMessage message={error} onRetry={handleRefresh} />;
   }
 
   if (!data) {
     return (
       <ErrorMessage
         message="Dashboard data is unavailable. The server returned an empty response."
-        onRetry={refresh}
+        onRetry={handleRefresh}
       />
     );
   }
@@ -63,7 +96,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <button
-          onClick={refresh}
+          onClick={handleRefresh}
           className="w-fit rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
         >
           Refresh dashboard
@@ -71,19 +104,36 @@ export default function DashboardPage() {
       </div>
 
       {data.alerts.length > 0 && (
-        <div className="space-y-3">
-          {data.alerts.map((alert) => (
-            <div
-              key={`${alert.type}-${alert.message}`}
-              className={`rounded-xl border px-4 py-3 text-sm ${
-                alert.severity === "warning"
-                  ? "border-amber-200 bg-amber-50 text-amber-900"
-                  : "border-blue-200 bg-blue-50 text-blue-900"
-              }`}
-            >
-              {alert.message}
-            </div>
-          ))}
+        <div className="grid gap-3 lg:grid-cols-3">
+          {data.alerts.map((alert) => {
+            const action = ALERT_ACTIONS[alert.type] ?? {
+              href: "/admin",
+              label: "Open dashboard",
+            };
+            return (
+              <div
+                key={`${alert.type}-${alert.message}`}
+                className={`rounded-2xl border px-4 py-4 text-sm ${
+                  alert.severity === "warning"
+                    ? "border-amber-200 bg-amber-50 text-amber-900"
+                    : "border-blue-200 bg-blue-50 text-blue-900"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <Badge variant={alert.severity === "warning" ? "warning" : "info"}>
+                    {alert.type}
+                  </Badge>
+                  <Link
+                    href={action.href}
+                    className="inline-flex items-center gap-1 text-xs font-semibold underline-offset-2 hover:underline"
+                  >
+                    {action.label} <ArrowRight size={12} />
+                  </Link>
+                </div>
+                <p className="mt-3">{alert.message}</p>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -103,6 +153,32 @@ export default function DashboardPage() {
         />
         <StatCard title="Visitors today" value={data.today.visitors} icon="👥" color="blue" />
       </div>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Demo data status</h2>
+            <p className="text-sm text-gray-500">
+              Visibility into the auto-seeded SQLite dataset behind the demo dashboard.
+            </p>
+          </div>
+          <Badge variant={seedStatus?.seeded ? "success" : "warning"}>
+            {seedLoading ? "Checking…" : seedStatus?.seeded ? "Seeded" : "Empty"}
+          </Badge>
+        </div>
+        <div className="mt-4 flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            {seedLoading
+              ? "Checking current seed state…"
+              : seedStatus?.seeded
+                ? `${seedStatus.games} seeded games are available to explore.`
+                : "No demo records were detected yet."}
+          </p>
+          <p className="text-xs text-gray-500">
+            POST `/api/seed` remains intentionally hidden; auto-seeding and status are now visible from the dashboard.
+          </p>
+        </div>
+      </section>
 
       <div className="grid gap-6 xl:grid-cols-[1.25fr_0.95fr]">
         <section className="rounded-2xl border border-gray-200 bg-white p-6">
