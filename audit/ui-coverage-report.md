@@ -1,216 +1,177 @@
-# CaféMeeple UI Coverage Report
+# UX Coverage Audit — CaféMeeple
 
-## Summary
-- **Stack audited:** Next.js 16 App Router, React 19, TypeScript 5, Tailwind CSS 4, SQLite via `better-sqlite3` (`package.json`, `lib/db.ts`).
-- **Router inventory:** UI routes live under `app/page.tsx`, `app/admin/page.tsx`, `app/admin/games/page.tsx`, `app/admin/tables/page.tsx`, `app/admin/checkout/page.tsx`, `app/admin/reservations/page.tsx`, and `app/admin/events/page.tsx`. API routes live under `app/api/**/route.ts`.
-- **UI entry points:** public landing page in `app/page.tsx`; authenticated/admin shell in `app/admin/layout.tsx` with shared navigation in `components/Sidebar.tsx` and shared feedback primitives in `components/Toast.tsx`, `components/Modal.tsx`, `components/ConfirmDialog.tsx`, and `components/ui.tsx`.
-- **Config / capability files:** `next.config.ts`, `.env.example`, `lib/constants.ts`; no runtime feature-flag framework or capability manifest was found in source.
-- **Audit verdict:** CaféMeeple already covers the core café workflow end to end (dashboard, library, floor operations, checkout, reservations, events), but several backend-backed capabilities are still hidden or only partially surfaced: true floor-plan geometry, table CRUD, session history, dashboard alert actions, image metadata editing, seed-state visibility, and API-backed filtering controls.
+Fresh pass over the current Next.js 16 App Router codebase. I scanned the live UI entry points (`app/page.tsx`, `app/admin/*`), supporting route handlers under `app/api/**`, shared shell/components, `package.json`, `next.config.ts`, `.env.example`, and `lib/db.ts`. There is no runtime feature-flag framework in source; the only capability gates are dev-only seeding (`app/api/seed/route.ts`, `lib/db.ts`) and the optional `NEXT_PUBLIC_BASE_URL` setting in `.env.example`.
+
+Overall, the operational surface is strong: the product exposes end-to-end flows for games, tables, sessions, checkout, reservations, events, analytics, and seeded demo data. This pass found **5 new actionable UX issues**: marketing copy drift on the landing page, incomplete reservation filter reset behavior, checkout feedback/safe-return gaps, RSVP modal stale/loading capacity feedback, and mobile drawer accessibility. All 5 were implemented in this pass; see **Implementation Status** at the end.
 
 ## Phase 1 — Feature Inventory
 
-### Marketing & Navigation
-1. **Marketing landing page** — Presents hero messaging, feature marketing, pricing, testimonials, and dashboard CTA on `/` (`app/page.tsx`).
-2. **Responsive admin shell** — Provides persistent admin navigation, mobile menu, error boundary, and toast notifications across `/admin/*` (`app/admin/layout.tsx`, `components/Sidebar.tsx`, `components/Toast.tsx`).
+### Marketing & Shell
+1. **Landing / marketing site** — hero, feature cards, pricing, testimonials, and admin CTAs (`app/page.tsx`).
+2. **Admin shell** — desktop sidebar, mobile drawer, page framing, global toast system, error boundary (`app/admin/layout.tsx`, `components/Sidebar.tsx`, `components/Toast.tsx`, `components/ErrorBoundary.tsx`).
+3. **Shared modal/dialog primitives** — focus-managed modal and confirm dialog used across admin workflows (`components/Modal.tsx`, `components/ConfirmDialog.tsx`).
 
-### Analytics & Operations
-3. **Daily KPI dashboard** — Shows active tables, games checked out, revenue, and visitors for the current day (`app/admin/page.tsx`, `app/api/dashboard/route.ts`).
-4. **Revenue analytics** — Breaks 30-day revenue into cover charges, food & beverage, retail, and events with chart views (`app/admin/page.tsx`, `app/api/dashboard/route.ts`).
-5. **Upcoming event capacity watchlist** — Shows near-term events with RSVP fill percentages (`app/admin/page.tsx`, `app/api/dashboard/route.ts`).
-6. **Operational alerts feed** — Surfaces replacement-risk titles, low inventory, and same-day reservation pressure (`app/admin/page.tsx`, `app/api/dashboard/route.ts`).
+### Dashboard & Operational Insights
+4. **Today KPIs** — active tables, games checked out, revenue, visitors (`app/admin/page.tsx`, `app/api/dashboard/route.ts`).
+5. **Operational alerts** — replacement, low-stock, reservation pressure alerts with deep links (`app/admin/page.tsx`, `app/api/dashboard/route.ts`).
+6. **Revenue visualization** — 30-day revenue mix charts and summaries (`app/admin/page.tsx`).
+7. **Upcoming events panel** — near-term event load and seat pressure (`app/admin/page.tsx`, `app/api/dashboard/route.ts`).
+8. **Popular games snapshots** — top games for 7-day and 30-day windows (`app/admin/page.tsx`, `app/api/dashboard/route.ts`).
+9. **Seed status visibility** — seeded/empty status surfaced in admin while `POST /api/seed` stays hidden from nav (`app/admin/page.tsx`, `app/api/seed/route.ts`).
 
 ### Game Library
-7. **Library browsing** — Shows the full game catalog in grid and table views with inventory and condition metadata (`app/admin/games/page.tsx`, `app/admin/games/components/GameGrid.tsx`, `app/admin/games/components/GameListTable.tsx`).
-8. **Library search and filters** — Filters games by search text, category, condition, complexity, player count, and replacement status (`app/admin/games/page.tsx`, `app/admin/games/components/GameFilterBar.tsx`, `app/api/games/route.ts`).
-9. **Game CRUD** — Creates, edits, and deletes game records with server-side validation and delete protections for titles with checkout history (`app/admin/games/components/GameModal.tsx`, `app/api/games/route.ts`, `app/api/games/[id]/route.ts`).
-10. **Condition and replacement tracking** — Computes replacement risk from condition score and checkout thresholds and exposes inspection metadata (`lib/db.ts`, `app/api/games/route.ts`, `app/admin/games/page.tsx`).
-11. **Game cover-image metadata** — Stores and returns `image_url` for catalog cards and seeded titles (`lib/db.ts`, `lib/seed.ts`, `app/api/games/route.ts`).
+10. **Library filtering** — search, category, condition, complexity, player-count, replacement-only filters (`app/admin/games/page.tsx`, `app/admin/games/components/GameFilterBar.tsx`, `app/api/games/route.ts`).
+11. **Grid/list browsing** — visual card grid and tabular list views for the same catalog (`GameGrid.tsx`, `GameListTable.tsx`).
+12. **Game CRUD** — add/edit modal with image preview, condition, thresholds, and shelf metadata (`GameModal.tsx`, `app/api/games/route.ts`, `app/api/games/[id]/route.ts`).
+13. **Replacement review cues** — replacement badges, warning counts, delete guardrails for used titles (`app/admin/games/page.tsx`, `GameGrid.tsx`, `GameListTable.tsx`, `app/api/games/[id]/route.ts`).
 
-### Tables & Sessions
-12. **Live floor overview** — Shows table availability and active session state from `/api/tables` and `/api/sessions?status=active` (`app/admin/tables/page.tsx`, `app/admin/tables/components/FloorMap.tsx`, `app/admin/tables/components/TableList.tsx`).
-13. **Session check-in flow** — Starts a table session with party name, guest count, rate model, and estimated cover charge (`app/admin/tables/components/CheckInModal.tsx`, `app/api/sessions/route.ts`).
-14. **Session closeout and billing** — Closes an active session, computes final charge, frees the table, and auto-returns outstanding games (`app/admin/tables/components/CheckoutModal.tsx`, `app/api/sessions/[id]/route.ts`).
-15. **Table roster CRUD** — Creates, updates, and deletes tables including section, shape, coordinates, and maintenance status (`app/api/tables/route.ts`, `app/api/tables/[id]/route.ts`).
-16. **Session history retrieval** — Lists recent sessions, including completed ones, with totals and active-game counts (`app/api/sessions/route.ts`).
-17. **Reservation-aware table occupancy** — Automatically derives `available`, `occupied`, `reserved`, and `maintenance` table states from sessions and reservations (`app/api/tables/route.ts`, `lib/types.ts`).
+### Tables, Floor, and Sessions
+14. **Floor map** — coordinate/shape-driven table layout with selected-table detail panel (`app/admin/tables/page.tsx`, `app/admin/tables/components/FloorMap.tsx`, `app/api/tables/route.ts`).
+15. **Active table list** — occupancy, elapsed time, billing, game count, and per-row actions (`TableList.tsx`).
+16. **Check-in flow** — seat a new party, choose rate model, estimate charge (`CheckInModal.tsx`, `app/api/sessions/route.ts`).
+17. **Billing / session close** — billing summary modal and close-session flow (`CheckoutModal.tsx`, `app/api/sessions/[id]/route.ts`).
+18. **Session history** — filtered history of active/completed sessions (`SessionHistoryTable.tsx`).
+19. **Table management** — roster view, add/edit modal, coordinate and maintenance management, delete protections (`TableManagement.tsx`, `TableEditorModal.tsx`, `app/api/tables/[id]/route.ts`).
 
 ### Game Checkout
-18. **Game assignment to active sessions** — Checks out available games to active tables (`app/admin/checkout/page.tsx`, `app/admin/checkout/components/CheckoutForm.tsx`, `app/api/checkout/route.ts`).
-19. **Game returns with condition logging** — Returns checked-out games, records return notes, and updates condition and replacement flags (`app/admin/checkout/components/ReturnModal.tsx`, `app/api/checkout/[id]/return/route.ts`).
-20. **Checkout ledgers** — Shows active checkout rows and return history (`app/admin/checkout/components/CheckoutTable.tsx`, `app/admin/checkout/components/CheckoutHistory.tsx`, `app/api/checkout/route.ts`).
-21. **Checkout record filtering** — Supports filtering checkout records by `session_id` and `game_id` at the API level (`app/api/checkout/route.ts`).
+20. **Checkout assignment** — active-session selector + searchable game combobox (`app/admin/checkout/page.tsx`, `CheckoutForm.tsx`, `app/api/checkout/route.ts`).
+21. **Active checkout ledger** — open checkouts with one-click return action (`CheckoutTable.tsx`).
+22. **Return workflow** — return modal with condition + notes, inventory/condition update route (`ReturnModal.tsx`, `app/api/checkout/[id]/return/route.ts`).
+23. **Checkout history filters** — session/game filters and returned-history tab (`app/admin/checkout/page.tsx`, `CheckoutHistory.tsx`).
 
 ### Reservations
-22. **Reservation views** — Presents reservations in list and weekly calendar layouts (`app/admin/reservations/page.tsx`, `app/admin/reservations/components/ReservationList.tsx`, `app/admin/reservations/components/ReservationCalendar.tsx`).
-23. **Reservation CRUD** — Creates, edits, and cancels reservations with guest details, duration, notes, and optional table assignment (`app/admin/reservations/components/ReservationModal.tsx`, `app/api/reservations/route.ts`, `app/api/reservations/[id]/route.ts`).
-24. **Reservation status workflow** — Confirms, marks no-shows, enforces overlap rules, and enforces table capacity on reservation save/update (`app/admin/reservations/page.tsx`, `app/admin/reservations/components/ReservationList.tsx`, `app/api/reservations/route.ts`, `app/api/reservations/[id]/route.ts`).
-25. **Reservation endpoint filtering** — Supports server-side filtering by `date`, `status`, and `limit` (`app/api/reservations/route.ts`).
+24. **Reservation filtering** — date filter, show-all toggle, status filter, guest search, list/calendar toggle (`app/admin/reservations/page.tsx`).
+25. **Calendar view** — weekly strip with per-day counts and reservation cards (`ReservationCalendar.tsx`).
+26. **List view** — guest/table/status table with confirm/no-show/edit/delete actions (`ReservationList.tsx`).
+27. **Reservation CRUD** — create/edit modal with party size, duration, optional table, notes (`ReservationModal.tsx`, `app/api/reservations/route.ts`, `app/api/reservations/[id]/route.ts`).
 
-### Events
-26. **Event CRUD** — Creates, edits, and deletes events with date, time, type, capacity, and status (`app/admin/events/page.tsx`, `app/admin/events/components/EventModal.tsx`, `app/api/events/route.ts`, `app/api/events/[id]/route.ts`).
-27. **Event cards with occupancy** — Shows event status, schedule, event type, and RSVP fill percentage (`app/admin/events/components/EventCard.tsx`, `app/admin/events/page.tsx`).
-28. **RSVP management** — Lists, adds, and removes RSVP records while enforcing event capacity (`app/admin/events/components/RsvpModal.tsx`, `app/api/events/[id]/rsvps/route.ts`, `app/api/events/[id]/rsvps/[rsvpId]/route.ts`).
+### Events & RSVPs
+28. **Event catalog** — cards with status, schedule, occupancy meter, RSVP/edit/delete actions (`app/admin/events/page.tsx`, `EventCard.tsx`).
+29. **Event CRUD** — create/edit modal with timing, capacity, type, status (`EventModal.tsx`, `app/api/events/route.ts`, `app/api/events/[id]/route.ts`).
+30. **RSVP management** — add/remove attendee records inside modal (`RsvpModal.tsx`, `app/api/events/[id]/rsvps/route.ts`, `app/api/events/[id]/rsvps/[rsvpId]/route.ts`).
 
-### Demo Data & Maintenance
-29. **Development auto-seeding and seed visibility** — Automatically seeds the SQLite database on first load in non-production and exposes a read-only seed-status endpoint (`lib/db.ts`, `app/api/seed/route.ts`).
-30. **Development-only seed trigger** — Exposes a guarded POST endpoint for manual seeding in non-production (`app/api/seed/route.ts`).
+### Hidden / Operational Capabilities
+31. **Dev-only manual seeding endpoint** — hidden from navigation, guarded in production (`app/api/seed/route.ts`).
+32. **Automatic schema bootstrap + seed** — DB singleton, schema initialization, dev auto-seeding (`lib/db.ts`).
 
-## Phase 2 — UI Coverage Mapping
+## Phase 2 — UI Coverage
 
 | # | Feature | Domain | UI Status | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | Marketing landing page | Marketing & Navigation | [COVERED] | Fully represented in `app/page.tsx`. |
-| 2 | Responsive admin shell | Marketing & Navigation | [COVERED] | Navigation, mobile shell, toasts, and error boundary are present in `app/admin/layout.tsx`. |
-| 3 | Daily KPI dashboard | Analytics & Operations | [COVERED] | KPI cards are surfaced on `/admin` from `app/api/dashboard/route.ts`. |
-| 4 | Revenue analytics | Analytics & Operations | [COVERED] | Bar + pie charts are rendered in `app/admin/page.tsx`. |
-| 5 | Upcoming event capacity watchlist | Analytics & Operations | [COVERED] | Upcoming event cards are visible on `/admin`. |
-| 6 | Operational alerts feed | Analytics & Operations | [PARTIAL] | Alerts render as passive text banners in `app/admin/page.tsx` with no direct action path. |
-| 7 | Library browsing | Game Library | [COVERED] | Grid/table browsing is available on `/admin/games`. |
-| 8 | Library search and filters | Game Library | [COVERED] | Search and filter controls are exposed in `GameFilterBar.tsx`. |
-| 9 | Game CRUD | Game Library | [PARTIAL] | Core create/edit/delete exists, but not all persisted fields are editable from `GameModal.tsx`. |
-| 10 | Condition and replacement tracking | Game Library | [COVERED] | Replacement count and condition status are visible in game cards/tables. |
-| 11 | Game cover-image metadata | Game Library | [MISSING] | `image_url` is returned by the API and used by cards, but there is no form control in `GameModal.tsx`. |
-| 12 | Live floor overview | Tables & Sessions | [PARTIAL] | `FloorMap.tsx` is a card grid; it does not use stored coordinates or shapes from the table model. |
-| 13 | Session check-in flow | Tables & Sessions | [PARTIAL] | Check-in exists, but clicking an available table does not preselect the tapped table and reserved/maintenance states are dead ends. |
-| 14 | Session closeout and billing | Tables & Sessions | [COVERED] | Billing summary and close-session flow are exposed in `CheckoutModal.tsx`. |
-| 15 | Table roster CRUD | Tables & Sessions | [MISSING] | CRUD endpoints exist under `app/api/tables*.ts`, but `/admin/tables` has no table-management UI. |
-| 16 | Session history retrieval | Tables & Sessions | [HIDDEN] | `/api/sessions` returns recent completed sessions, but `/admin/tables` only shows active sessions. |
-| 17 | Reservation-aware table occupancy | Tables & Sessions | [COVERED] | Derived statuses are visible through `/api/tables` responses and current table views. |
-| 18 | Game assignment to active sessions | Game Checkout | [COVERED] | Available in `CheckoutForm.tsx`. |
-| 19 | Game returns with condition logging | Game Checkout | [COVERED] | Available in `ReturnModal.tsx`. |
-| 20 | Checkout ledgers | Game Checkout | [COVERED] | Active and history tables are visible on `/admin/checkout`. |
-| 21 | Checkout record filtering | Game Checkout | [HIDDEN] | API filters exist in `app/api/checkout/route.ts`, but no UI control exposes them. |
-| 22 | Reservation views | Reservations | [COVERED] | Weekly calendar and list modes exist on `/admin/reservations`. |
-| 23 | Reservation CRUD | Reservations | [COVERED] | Reservation modal and delete flow are implemented. |
-| 24 | Reservation status workflow | Reservations | [COVERED] | Confirm/no-show/cancel actions and server validation are in place. |
-| 25 | Reservation endpoint filtering | Reservations | [PARTIAL] | The API supports status/date filtering, but the UI only exposes date/show-all controls. |
-| 26 | Event CRUD | Events | [COVERED] | Event creation, editing, and deletion are fully exposed. |
-| 27 | Event cards with occupancy | Events | [COVERED] | Event fill states are visible in `EventCard.tsx`. |
-| 28 | RSVP management | Events | [COVERED] | RSVP list/add/remove flow is present in `RsvpModal.tsx`. |
-| 29 | Development auto-seeding and seed visibility | Demo Data & Maintenance | [HIDDEN] | Auto-seeding happens in `lib/db.ts`, and `/api/seed` exists, but there is no admin visibility into dataset state. |
-| 30 | Development-only seed trigger | Demo Data & Maintenance | [HIDDEN] | POST `/api/seed` exists but is intentionally not exposed in the admin UI. |
+| 1 | Landing page product positioning and demo CTAs | Marketing | [PARTIAL] | Marketing surface existed in `app/page.tsx`, but several labels/descriptions overstated current capabilities or implied a trial flow rather than the seeded admin demo. |
+| 2 | Admin shell and navigation | Platform shell | [PARTIAL] | Desktop nav was solid, but the mobile drawer in `app/admin/layout.tsx` lacked an explicit close affordance and keyboard dismissal behavior. |
+| 3 | Dashboard KPIs, alerts, charts, upcoming events | Dashboard | [COVERED] | End-to-end via `app/admin/page.tsx`, `app/api/dashboard/route.ts`, `app/api/seed/route.ts`. |
+| 4 | Game library filtering | Games | [COVERED] | Search + multi-filter workflow is implemented across `GamesPage`, `GameFilterBar.tsx`, and `/api/games`. |
+| 5 | Grid/list catalog browsing | Games | [COVERED] | Both `GameGrid.tsx` and `GameListTable.tsx` are wired and switchable. |
+| 6 | Game create/edit flow | Games | [COVERED] | `GameModal.tsx` + `app/api/games/**` support add/edit with validations and preview. |
+| 7 | Replacement review/delete guardrails | Games | [COVERED] | Replacement cues and deletion guardrails are visible in UI/API (`GameGrid.tsx`, `GameListTable.tsx`, `app/api/games/[id]/route.ts`). |
+| 8 | Floor map operations | Tables & sessions | [COVERED] | `FloorMap.tsx` exposes selection, state, and next actions tied to `/api/tables` + `/api/sessions`. |
+| 9 | Active table list and billing summary | Tables & sessions | [COVERED] | `TableList.tsx` and `CheckoutModal.tsx` cover the row-based operational view. |
+| 10 | New-party check-in | Tables & sessions | [COVERED] | `CheckInModal.tsx` + `/api/sessions` handle table assignment and charge preview. |
+| 11 | Session history | Tables & sessions | [COVERED] | `SessionHistoryTable.tsx` exposes active/completed history with filters. |
+| 12 | Table management/editor | Tables & sessions | [COVERED] | `TableManagement.tsx` and `TableEditorModal.tsx` expose CRUD and layout maintenance. |
+| 13 | Game checkout assignment | Checkout | [PARTIAL] | Core workflow existed, but `CheckoutForm.tsx` gave weak confirmation when a game was selected and a weak no-results state. |
+| 14 | Game return flow | Checkout | [PARTIAL] | `ReturnModal.tsx` and `app/api/checkout/[id]/return/route.ts` allowed returns, but the default return condition risked accidental record changes. |
+| 15 | Checkout history ledger filters | Checkout | [COVERED] | Session/game filters and history tab are present in `app/admin/checkout/page.tsx`. |
+| 16 | Reservation filters and list/calendar views | Reservations | [PARTIAL] | `app/admin/reservations/page.tsx` covered the filters, but reset behavior only partially cleared the active filter state. |
+| 17 | Reservation create/edit flow | Reservations | [COVERED] | `ReservationModal.tsx` + `/api/reservations` cover authoring and editing. |
+| 18 | Reservation lifecycle actions | Reservations | [COVERED] | Confirm/no-show/delete actions are exposed from `ReservationList.tsx` and `/api/reservations/[id]/route.ts`. |
+| 19 | Event catalog and occupancy cues | Events | [COVERED] | `EventsPage` + `EventCard.tsx` provide browse/edit/delete entry points. |
+| 20 | Event create/edit flow | Events | [COVERED] | `EventModal.tsx` + `/api/events/**` cover authoring and editing. |
+| 21 | RSVP management modal | Events | [PARTIAL] | `RsvpModal.tsx` allowed add/remove, but opened before fresh RSVP data loaded and gave no pre-submit capacity feedback. |
+| 22 | Manual seed endpoint/status | Operations | [HIDDEN] | `app/api/seed/route.ts` is intentionally hidden from nav and only surfaced through dashboard status copy. |
+| 23 | Auto-seed/bootstrap | Operations | [HIDDEN] | `lib/db.ts` auto-initializes schema and seed data without a dedicated admin UI. |
 
-## Phase 3 — UX Quality Assessment
+## Phase 3 — UX Quality
 
-_Only material issues are listed below. Covered features not called out here did not show high-signal UX problems in the current source audit._
+**#1 — Landing page product messaging** `[MINOR]`  
+**Criterion:** Consistency / trust  
+**Problem:** The landing page in `app/page.tsx` mixed real demo features with overstated claims (for example: waitlist/BGG-style wording and trial-oriented CTA labels), which made the public-facing promise drift away from the actual seeded admin experience exposed at `/admin`.  
+**Location:** `app/page.tsx`
 
-**#6 — Operational alerts feed** `[MAJOR]`
-- **Criterion violated:** Discoverability / Feedback
-- **Specific problem:** Alerts are rendered as plain status text with no link, CTA, or drill-down path, so staff must guess which page to open next when inventory, replacement, or reservation pressure warnings appear.
-- **Location in codebase:** `app/admin/page.tsx`, `app/api/dashboard/route.ts`
+**#2 — Reservation filter reset** `[MAJOR]`  
+**Criterion:** Discoverability / edge cases  
+**Problem:** The “Reset filters” action in `app/admin/reservations/page.tsx` only cleared `search` and `statusFilter`. If a user still had `selectedDate` or `showAll` active, the page could continue hiding results after “reset,” making the UI feel unreliable.  
+**Location:** `app/admin/reservations/page.tsx`
 
-**#9 / #11 — Game CRUD and cover-image metadata** `[MAJOR]`
-- **Criterion violated:** Consistency / Edge cases
-- **Specific problem:** Game cards already render `image_url`, and seeded data includes cover art, but the create/edit modal cannot create or maintain that field. This creates a data-model/UI mismatch and makes media-backed catalog curation unreachable from the admin.
-- **Location in codebase:** `app/admin/games/components/GameModal.tsx`, `app/admin/games/components/GameGrid.tsx`, `app/api/games/route.ts`, `lib/seed.ts`
+**#3 — Checkout selection + return safety** `[MAJOR]`  
+**Criterion:** Feedback / data-entry safety  
+**Problem:** `app/admin/checkout/components/CheckoutForm.tsx` did not clearly confirm which game had been selected, and `app/admin/checkout/components/ReturnModal.tsx` defaulted returns to “Good.” Combined with `app/api/checkout/[id]/return/route.ts`, that made it too easy to submit a return without deliberately choosing the observed condition.  
+**Location:** `app/admin/checkout/components/CheckoutForm.tsx`, `app/admin/checkout/components/ReturnModal.tsx`, `app/api/checkout/[id]/return/route.ts`
 
-**#12 — Live floor overview** `[MAJOR]`
-- **Criterion violated:** Discoverability / Consistency
-- **Specific problem:** The feature is labeled “Floor map,” but the UI is a uniform card grid that ignores `x_position`, `y_position`, and `shape`. Staff cannot learn or adjust the actual room layout even though the backend stores that geometry.
-- **Location in codebase:** `app/admin/tables/components/FloorMap.tsx`, `app/api/tables/route.ts`, `app/api/tables/[id]/route.ts`, `lib/types.ts`
+**#4 — RSVP modal freshness and capacity feedback** `[MAJOR]`  
+**Criterion:** Feedback / edge cases  
+**Problem:** The RSVP modal could open on stale/empty data while a fresh fetch was still in flight, and the add-RSVP flow in `app/admin/events/components/RsvpModal.tsx` gave no remaining-seat guidance before submit. Staff had to infer whether the modal was still loading or wait for the server to reject an over-capacity request.  
+**Location:** `app/admin/events/page.tsx`, `app/admin/events/components/RsvpModal.tsx`
 
-**#13 — Session check-in flow** `[MAJOR]`
-- **Criterion violated:** Feedback / Edge cases
-- **Specific problem:** Clicking an available table opens a generic check-in flow without preserving the user’s table choice, and reserved/maintenance tables do nothing on click. The result is extra work for available tables and dead-end interaction for blocked tables.
-- **Location in codebase:** `app/admin/tables/components/FloorMap.tsx`, `app/admin/tables/components/CheckInModal.tsx`
-
-**#21 — Checkout record filtering** `[MAJOR]`
-- **Criterion violated:** Discoverability
-- **Specific problem:** Checkout history and active ledgers cannot be narrowed by session or game from the UI, even though the API supports both filters. Operators must scan long tables manually.
-- **Location in codebase:** `app/admin/checkout/page.tsx`, `app/api/checkout/route.ts`
-
-**#25 — Reservation endpoint filtering** `[MAJOR]`
-- **Criterion violated:** Discoverability / Edge cases
-- **Specific problem:** Reservations can be filtered by date only. High-volume workflows have no search or status controls despite the backend already supporting status filtering.
-- **Location in codebase:** `app/admin/reservations/page.tsx`, `app/admin/reservations/components/ReservationList.tsx`, `app/api/reservations/route.ts`
+**#5 — Mobile admin drawer accessibility** `[MAJOR]`  
+**Criterion:** Accessibility / discoverability  
+**Problem:** On narrow viewports, `app/admin/layout.tsx` opened a slide-in drawer with no dedicated close button, no Escape-key handling, and no scroll lock. That made the navigation harder to dismiss for keyboard users and increased the chance of focus/scroll confusion.  
+**Location:** `app/admin/layout.tsx`
 
 ## Phase 4 — Remediation Plan
 
-**Remediation #1** `[S]`
-- **Feature:** #6 Operational alerts feed
-- **What to fix:** Turn dashboard alerts into actionable cards with explicit destination links and clearer context labels.
-- **Where:** `app/admin/page.tsx`
-- **Recommended pattern:** Alert card with severity styling, short explanation, and CTA link/button to the relevant page (`/admin/games`, `/admin/reservations`, etc.).
+**Remediation #1** `[XS]`  
+**Description:** Align the public landing copy with the actual seeded admin demo by updating feature language and CTA labels so they describe the current product surface instead of aspirational flows.  
+**Target:** `app/page.tsx`  
+**UI pattern:** Truthful product messaging + route-label alignment
 
-**Remediation #2** `[XS]`
-- **Feature:** #29 Development auto-seeding and seed visibility
-- **What to fix:** Surface read-only seed status in the admin so operators can tell whether demo data is loaded, while keeping the POST seed trigger internal-only.
-- **Where:** `app/admin/page.tsx`, `app/api/seed/route.ts`
-- **Recommended pattern:** Small dashboard utility card showing seeded/not seeded state and current record counts.
+**Remediation #2** `[XS]`  
+**Description:** Replace the partial reservation reset action with a single reset-all control that restores the default date, clears the show-all toggle, and removes search/status filters together.  
+**Target:** `app/admin/reservations/page.tsx`  
+**UI pattern:** Reversible filter toolbar / reset-all affordance
 
-**Remediation #3** `[S]`
-- **Feature:** #11 Game cover-image metadata
-- **What to fix:** Add an editable `image_url` control and preview to the game modal so library media can be created and maintained from the UI.
-- **Where:** `app/admin/games/components/GameModal.tsx`
-- **Recommended pattern:** Labeled URL field with helper text and live preview/fallback thumbnail.
+**Remediation #3** `[S]`  
+**Description:** Add a selected-game confirmation state in the checkout combobox, strengthen the empty-search feedback, and require an explicit return condition selection before a return can be submitted. Enforce the same requirement in the return route.  
+**Target:** `app/admin/checkout/components/CheckoutForm.tsx`, `app/admin/checkout/components/ReturnModal.tsx`, `app/api/checkout/[id]/return/route.ts`  
+**UI pattern:** Selection confirmation + guarded destructive/quality update
 
-**Remediation #4** `[L]`
-- **Feature:** #12 Live floor overview and #15 Table roster CRUD
-- **What to fix:** Replace the faux “floor map” grid with a coordinate-based canvas, expose table section/shape/coordinate/maintenance editing, and align table validation with the stored layout coordinate system.
-- **Where:** `app/admin/tables/page.tsx`, `app/admin/tables/components/FloorMap.tsx`, new table-management components under `app/admin/tables/components/`, `app/api/tables/route.ts`, `app/api/tables/[id]/route.ts`, `lib/types.ts`
-- **Recommended pattern:** Map canvas + management tab/table + create/edit modal with validated layout fields.
+**Remediation #4** `[S]`  
+**Description:** Clear stale RSVP data on modal open, show an explicit loading state while fresh attendee data is loading, surface remaining-seat guidance, and block oversize RSVP submissions before they hit the server.  
+**Target:** `app/admin/events/page.tsx`, `app/admin/events/components/RsvpModal.tsx`  
+**UI pattern:** Loading-state feedback + inline capacity validation
 
-**Remediation #5** `[S]`
-- **Feature:** #13 Session check-in flow
-- **What to fix:** Preserve the tapped table when launching check-in and give reserved/maintenance tables a non-dead-end detail state.
-- **Where:** `app/admin/tables/components/FloorMap.tsx`, `app/admin/tables/components/CheckInModal.tsx`
-- **Recommended pattern:** Context-aware modal defaults plus detail panel or inline explainer for blocked tables.
+**Remediation #5** `[S]`  
+**Description:** Treat the mobile admin drawer like an accessible dialog by adding a close button, Escape-key dismissal, focus return to the trigger, and body scroll lock while the drawer is open.  
+**Target:** `app/admin/layout.tsx`  
+**UI pattern:** Accessible drawer dialog
 
-**Remediation #6** `[M]`
-- **Feature:** #16 Session history retrieval
-- **What to fix:** Expose recent session history with timestamps, totals, and status inside the Tables area.
-- **Where:** `app/admin/tables/page.tsx`, new history component under `app/admin/tables/components/`, `app/api/sessions/route.ts`
-- **Recommended pattern:** Session-history tab with status chips and compact metrics table.
-
-**Remediation #7** `[S]`
-- **Feature:** #21 Checkout record filtering
-- **What to fix:** Add session/game filters and stronger empty-state guidance to the checkout page.
-- **Where:** `app/admin/checkout/page.tsx`, `app/admin/checkout/components/CheckoutForm.tsx`, `app/admin/checkout/components/CheckoutTable.tsx`, `app/admin/checkout/components/CheckoutHistory.tsx`
-- **Recommended pattern:** Secondary filter bar above ledger tabs with clear reset path and contextual empty states.
-
-**Remediation #8** `[S]`
-- **Feature:** #25 Reservation endpoint filtering
-- **What to fix:** Add search and status filtering so staff can narrow long reservation lists without changing dates.
-- **Where:** `app/admin/reservations/page.tsx`, `app/admin/reservations/components/ReservationList.tsx`, `app/api/reservations/route.ts`
-- **Recommended pattern:** Reservation filter bar with guest search, status select, and result count.
-
-## Phase 5 — Priority Stack Rank
+## Phase 5 — Priority Stack
 
 ### Quick Wins
 
-| Priority | Remediation # | Feature | Severity | Effort |
-| --- | --- | --- | --- | --- |
-| 1 | 1 | Dashboard alert actions | MAJOR | S |
-| 2 | 3 | Game cover-image editing | MAJOR | S |
-| 3 | 5 | Context-aware session check-in | MAJOR | S |
-| 4 | 7 | Checkout filters and guidance | MAJOR | S |
-| 5 | 8 | Reservation search and status filters | MAJOR | S |
+| Rank | Remediation | Severity | Coverage | Effort | Why it lands here |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Improve checkout selection feedback and return safety | [MAJOR] | [PARTIAL] | [S] | Prevents avoidable operator mistakes in a high-frequency workflow touching inventory condition data. |
+| 2 | Fix mobile drawer dismissal/accessibility | [MAJOR] | [PARTIAL] | [S] | Affects every admin route on small screens and blocks clean keyboard/mobile navigation. |
+| 3 | Reset all reservation filters together | [MAJOR] | [PARTIAL] | [XS] | Very high clarity gain for a low-effort fix in a core scheduling workflow. |
+| 4 | Add RSVP loading and remaining-seat feedback | [MAJOR] | [PARTIAL] | [S] | Removes stale-state confusion and reduces capacity-related submission failures. |
+| 5 | Align landing copy to current demo scope | [MINOR] | [PARTIAL] | [XS] | Small effort, immediate trust/consistency improvement for the first-time user journey. |
 
 ### Full Stack Rank
 
-| Priority | Remediation # | Feature | Severity | Effort |
-| --- | --- | --- | --- | --- |
-| 1 | 4 | Real floor plan + table management | CRITICAL | L |
-| 2 | 6 | Session history visibility | MAJOR | M |
-| 3 | 1 | Dashboard alert actions | MAJOR | S |
-| 4 | 3 | Game cover-image editing | MAJOR | S |
-| 5 | 5 | Context-aware session check-in | MAJOR | S |
-| 6 | 7 | Checkout filters and guidance | MAJOR | S |
-| 7 | 8 | Reservation search and status filters | MAJOR | S |
-| 8 | 2 | Demo-data seed status visibility | MINOR | XS |
+| Rank | Item | Severity | Coverage | Effort | Impact notes |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Checkout selection + return safety | [MAJOR] | [PARTIAL] | [S] | Directly improves the accuracy and confidence of the game checkout/return loop. |
+| 2 | Mobile admin drawer accessibility | [MAJOR] | [PARTIAL] | [S] | Cross-cutting shell improvement for every admin workflow on narrow screens. |
+| 3 | Reservation filter reset | [MAJOR] | [PARTIAL] | [XS] | Resolves a “why is my data still missing?” state in a daily workflow. |
+| 4 | RSVP modal loading/capacity feedback | [MAJOR] | [PARTIAL] | [S] | Prevents stale RSVP displays and reduces failed add-RSVP attempts. |
+| 5 | Landing page messaging alignment | [MINOR] | [PARTIAL] | [XS] | Keeps the marketing entry point honest about the actual demo experience. |
 
-## Phase 6 — Implemented vs Deferred
+## Implementation Status
 
-### Implemented remediations
-- **#1 Operational alerts feed:** `/admin` now turns alerts into actionable cards with direct navigation targets and clearer context (`app/admin/page.tsx`).
-- **#2 Seed visibility:** `/admin` now shows read-only demo-data seed status and record counts without exposing the write endpoint (`app/admin/page.tsx`, `app/api/seed/route.ts`).
-- **#3 Game cover-image metadata:** `GameModal` now supports editing `image_url` with a live preview so catalog media can be maintained in the UI (`app/admin/games/components/GameModal.tsx`).
-- **#4 Real floor plan + table roster CRUD:** tables now have a coordinate-driven floor map, management roster, create/edit modal, session history view, and API validation aligned to stored layout coordinates (`app/admin/tables/page.tsx`, `app/admin/tables/components/FloorMap.tsx`, `app/admin/tables/components/TableManagement.tsx`, `app/admin/tables/components/TableEditorModal.tsx`, `app/admin/tables/components/SessionHistoryTable.tsx`, `app/api/tables/route.ts`, `app/api/tables/[id]/route.ts`, `lib/constants.ts`).
-- **#5 Context-aware session check-in:** selecting a table now carries context into check-in and reserved/maintenance tables show a non-dead-end detail state (`app/admin/tables/components/FloorMap.tsx`, `app/admin/tables/components/CheckInModal.tsx`).
-- **#6 Session history visibility:** the Tables area now exposes recent session history with filters and billing context (`app/admin/tables/page.tsx`, `app/admin/tables/components/SessionHistoryTable.tsx`).
-- **#7 Checkout filters and guidance:** the checkout ledger now exposes session/game filters, reset controls, and stronger empty states (`app/admin/checkout/page.tsx`).
-- **#8 Reservation search and status filters:** reservations now support guest search plus status filtering in addition to date controls (`app/admin/reservations/page.tsx`).
+**Status:** All 5 remediations from this pass were implemented.
 
-### Deferred / intentionally unchanged
-- **No audit remediations were deferred.**
-- **Still intentionally hidden:** POST `/api/seed` remains unexposed in the admin UI by design, matching the original recommendation to keep the manual seed trigger internal-only (`app/api/seed/route.ts`).
+- **Landing page messaging aligned** — updated feature descriptions and CTA labels so the marketing surface now matches the seeded admin demo (`app/page.tsx`).
+- **Reservation reset fixed** — replaced the partial reset with a reset-all flow that clears date/show-all/status/search together (`app/admin/reservations/page.tsx`).
+- **Checkout feedback and return safety improved** — added selected-game confirmation + clear affordance, improved empty-search feedback, and made return condition selection explicit in both UI and API validation (`app/admin/checkout/components/CheckoutForm.tsx`, `app/admin/checkout/components/ReturnModal.tsx`, `app/api/checkout/[id]/return/route.ts`).
+- **RSVP modal hardened** — modal now clears stale data on open, shows loading feedback, displays remaining seats, and blocks oversize RSVP submissions client-side (`app/admin/events/page.tsx`, `app/admin/events/components/RsvpModal.tsx`).
+- **Mobile drawer made accessible** — added close control, Escape handling, focus return, and scroll lock for the admin navigation drawer (`app/admin/layout.tsx`).
+- **Regression coverage added** — added lightweight source-level regression tests for all five fixes using Node’s built-in test runner (`tests/ux-audit-regressions.test.mjs`, `package.json`).
+
+### Validation
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+- `npm run test`
