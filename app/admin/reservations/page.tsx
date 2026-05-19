@@ -43,7 +43,8 @@ export default function ReservationsPage() {
   const showAllId = useId();
   const searchId = useId();
   const statusId = useId();
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const [selectedDate, setSelectedDate] = useState(today);
   const [showAll, setShowAll] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
@@ -86,6 +87,14 @@ export default function ReservationsPage() {
     );
   }, [reservations, search]);
   const tables = data?.tables ?? EMPTY_TABLES;
+  const hasActiveFilters = showAll || selectedDate !== today || statusFilter !== "" || search.trim() !== "";
+
+  const resetAllFilters = () => {
+    setSelectedDate(today);
+    setShowAll(false);
+    setStatusFilter("");
+    setSearch("");
+  };
 
   const handleDelete = async (id: number) => {
     try {
@@ -231,7 +240,7 @@ export default function ReservationsPage() {
           />
           <button
             onClick={() => {
-              setSelectedDate(new Date().toISOString().slice(0, 10));
+              setSelectedDate(today);
               setShowAll(false);
             }}
             className="px-3 py-2 text-sm text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
@@ -282,13 +291,11 @@ export default function ReservationsPage() {
           </div>
           <button
             type="button"
-            onClick={() => {
-              setSearch("");
-              setStatusFilter("");
-            }}
-            className="h-fit self-end rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            onClick={resetAllFilters}
+            disabled={!hasActiveFilters}
+            className="h-fit self-end rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Reset filters
+            Reset all filters
           </button>
         </div>
       </div>
