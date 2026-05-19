@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui";
+import { Badge, EmptyState } from "@/components/ui";
 import type { Reservation } from "@/lib/types";
 
 type CalendarReservation = Pick<
@@ -23,6 +23,8 @@ interface ReservationCalendarProps {
   selectedDate: string;
   onSelectDate: (date: string) => void;
   statusVariant: (status: string) => StatusVariant;
+  hasActiveFilters: boolean;
+  onResetFilters: () => void;
 }
 
 function getWeekDates(selectedDate: string): string[] {
@@ -44,8 +46,11 @@ export default function ReservationCalendar({
   selectedDate,
   onSelectDate,
   statusVariant,
+  hasActiveFilters,
+  onResetFilters,
 }: ReservationCalendarProps) {
   const weekDates = getWeekDates(selectedDate);
+  const selectedReservations = reservations.filter((reservation) => reservation.reservation_date === selectedDate);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
@@ -85,13 +90,28 @@ export default function ReservationCalendar({
             day: "numeric",
           })}
         </h3>
-        {reservations.filter((r) => r.reservation_date === selectedDate).length === 0 ? (
-          <p className="text-sm text-gray-400">No reservations for this date</p>
+        {selectedReservations.length === 0 ? (
+          <EmptyState
+            icon="📅"
+            title={hasActiveFilters ? "No reservations match the selected filters" : "No reservations for this date"}
+            description={
+              hasActiveFilters
+                ? "Try another day or reset the active filters to reopen the schedule."
+                : "Pick another date in the week strip or create a new reservation."
+            }
+            action={hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={onResetFilters}
+                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+              >
+                Reset filters
+              </button>
+            ) : undefined}
+          />
         ) : (
           <div className="space-y-2">
-            {reservations
-              .filter((r) => r.reservation_date === selectedDate)
-              .map((r) => (
+            {selectedReservations.map((r) => (
                 <div key={r.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium text-sm">

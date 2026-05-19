@@ -309,6 +309,8 @@ export default function ReservationsPage() {
             setShowAll(false);
           }}
           statusVariant={statusVariant}
+          hasActiveFilters={hasActiveFilters}
+          onResetFilters={resetAllFilters}
         />
       )}
 
@@ -320,6 +322,8 @@ export default function ReservationsPage() {
           onDelete={setDeleteConfirm}
           onStatusChange={handleStatusChange}
           statusVariant={statusVariant}
+          hasActiveFilters={hasActiveFilters}
+          onResetFilters={resetAllFilters}
         />
       )}
 

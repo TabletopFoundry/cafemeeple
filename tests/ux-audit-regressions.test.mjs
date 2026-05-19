@@ -67,6 +67,18 @@ test("event RSVP modal surfaces loading and remaining-seat guidance", () => {
   assert.match(rsvpModalSource, /This event is currently full\./);
 });
 
+test("reservation zero states explain when filters hide results", () => {
+  const reservationsPageSource = readSource("app/admin/reservations/page.tsx");
+  const reservationListSource = readSource("app/admin/reservations/components/ReservationList.tsx");
+  const reservationCalendarSource = readSource("app/admin/reservations/components/ReservationCalendar.tsx");
+
+  assert.match(reservationsPageSource, /hasActiveFilters=\{hasActiveFilters\}/);
+  assert.match(reservationsPageSource, /onResetFilters=\{resetAllFilters\}/);
+  assert.match(reservationListSource, /No reservations match the current filters/);
+  assert.match(reservationCalendarSource, /No reservations match the selected filters/);
+  assert.match(reservationCalendarSource, /Try another day or reset the active filters to reopen the schedule\./);
+});
+
 test("mobile admin drawer includes close and escape affordances", () => {
   const source = readSource("app/admin/layout.tsx");
 
