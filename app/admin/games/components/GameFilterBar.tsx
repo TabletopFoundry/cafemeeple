@@ -18,6 +18,8 @@ interface GameFilterBarProps {
   onPlayerCountFilterChange: (value: string) => void;
   replacementOnly: boolean;
   onReplacementOnlyChange: (value: boolean) => void;
+  activeFilterCount: number;
+  onResetFilters: () => void;
 }
 
 export default function GameFilterBar({
@@ -34,6 +36,8 @@ export default function GameFilterBar({
   onPlayerCountFilterChange,
   replacementOnly,
   onReplacementOnlyChange,
+  activeFilterCount,
+  onResetFilters,
 }: GameFilterBarProps) {
   const searchId = useId();
   const categoryId = useId();
@@ -100,6 +104,21 @@ export default function GameFilterBar({
           <input type="checkbox" checked={replacementOnly} onChange={(event) => onReplacementOnlyChange(event.target.checked)} />
           <AlertTriangle size={14} className="text-amber-500" /> Needs replacement
         </label>
+      </div>
+      <div className="mt-3 flex flex-col gap-2 border-t border-gray-100 pt-3 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+        <p>
+          {activeFilterCount === 0
+            ? "No filters active."
+            : `${activeFilterCount} filter${activeFilterCount === 1 ? "" : "s"} active.`}
+        </p>
+        <button
+          type="button"
+          onClick={onResetFilters}
+          disabled={activeFilterCount === 0}
+          className="w-fit rounded-lg border border-gray-200 px-3 py-2 font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Reset filters
+        </button>
       </div>
     </div>
   );

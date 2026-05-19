@@ -45,6 +45,17 @@ test("checkout flow shows selected-game feedback and requires explicit return co
   assert.match(returnRouteSource, /validateRequired\(return_condition, \"return_condition\"\)/);
 });
 
+test("game library filters expose reset recovery and active-filter feedback", () => {
+  const gamesPageSource = readSource("app/admin/games/page.tsx");
+  const filterBarSource = readSource("app/admin/games/components/GameFilterBar.tsx");
+
+  assert.match(gamesPageSource, /const activeFilterCount = \[/);
+  assert.match(gamesPageSource, /const resetFilters = \(\) => \{/);
+  assert.match(gamesPageSource, /setReplacementOnly\(false\);/);
+  assert.match(filterBarSource, /No filters active\./);
+  assert.match(filterBarSource, /Reset filters/);
+});
+
 test("event RSVP modal surfaces loading and remaining-seat guidance", () => {
   const eventsPageSource = readSource("app/admin/events/page.tsx");
   const rsvpModalSource = readSource("app/admin/events/components/RsvpModal.tsx");

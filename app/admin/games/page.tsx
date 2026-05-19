@@ -27,6 +27,15 @@ export default function GamesPage() {
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const { addToast } = useToast();
+  const activeFilterCount = [
+    search.trim() !== "",
+    categoryFilter !== "",
+    conditionFilter !== "",
+    complexityFilter !== "",
+    playerCountFilter !== "",
+    replacementOnly,
+  ].filter(Boolean).length;
+  const hasActiveFilters = activeFilterCount > 0;
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -47,6 +56,15 @@ export default function GamesPage() {
 
   const gamesList = useMemo(() => games ?? [], [games]);
   const replacementCount = useMemo(() => gamesList.filter((game) => Number(game.needs_replacement) === 1).length, [gamesList]);
+  const resetFilters = () => {
+    setSearch("");
+    setCategoryFilter("");
+    setConditionFilter("");
+    setComplexityFilter("");
+    setPlayerCountFilter("");
+    setReplacementOnly(false);
+  };
+
   const closeModal = () => {
     setShowAddModal(false);
     setEditingGame(null);
@@ -108,6 +126,8 @@ export default function GamesPage() {
         onPlayerCountFilterChange={setPlayerCountFilter}
         replacementOnly={replacementOnly}
         onReplacementOnlyChange={setReplacementOnly}
+        activeFilterCount={activeFilterCount}
+        onResetFilters={resetFilters}
       />
 
       {loading && <LoadingSpinner size="lg" />}
@@ -116,9 +136,23 @@ export default function GamesPage() {
       {!loading && !error && gamesList.length === 0 && (
         <EmptyState
           icon="🎲"
-          title="No games match these filters"
-          description="Adjust the library filters or add a new title to your catalog."
-          action={<button onClick={() => setShowAddModal(true)} className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700">Add game</button>}
+          title={hasActiveFilters ? "No games match these filters" : "No games in the library yet"}
+          description={
+            hasActiveFilters
+              ? "Reset the filters or widen your search to bring titles back into view."
+              : "Add a new title to start building the catalog."
+          }
+          action={hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+            >
+              Reset filters
+            </button>
+          ) : (
+            <button onClick={() => setShowAddModal(true)} className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700">Add game</button>
+          )}
         />
       )}
 
