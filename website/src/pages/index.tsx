@@ -88,7 +88,7 @@ const FEATURES = [
 function Features() {
   return (
     <section className="features-cm">
-      <h2 className="features-cm__title">Everything your café needs. Nothing it doesn't.</h2>
+      <h2 className="features-cm__title">Everything your café needs. Nothing it doesn’t.</h2>
       <p className="features-cm__lede">
         Five focused modules. One coherent data model. Zero monthly fees.
       </p>
