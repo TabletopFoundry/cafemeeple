@@ -18,7 +18,7 @@ const FEATURES = [
   {
     icon: "🎲",
     title: "Game Library Management",
-    description: "Track every game copy, condition, and shelf location. QR-ready catalog with BGG integration.",
+    description: "Track every game copy, condition, replacement risk, and shelf location in one searchable catalog.",
   },
   {
     icon: "🪑",
@@ -27,8 +27,8 @@ const FEATURES = [
   },
   {
     icon: "📅",
-    title: "Reservations & Waitlist",
-    description: "Online booking widget, staff calendar, waitlist management, and no-show handling.",
+    title: "Reservations Management",
+    description: "Staff calendar, date-based filters, table assignment, and no-show handling for daily bookings.",
   },
   {
     icon: "🎉",
@@ -38,12 +38,12 @@ const FEATURES = [
   {
     icon: "📊",
     title: "Analytics & Insights",
-    description: "Revenue dashboards, popular games, table utilization, and operational trend analysis.",
+    description: "Track revenue mix, popular games, upcoming events, and operational alerts from the admin dashboard.",
   },
   {
     icon: "🔄",
     title: "Game Checkout Tracking",
-    description: "Assign games to tables, track returns, log damage, and see checkout history.",
+    description: "Assign games to tables, track returns, log condition changes, and review checkout history.",
   },
 ];
 
@@ -116,7 +116,7 @@ export default function LandingPage() {
               href="/admin"
               className="bg-violet-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-violet-700 transition-colors text-lg"
             >
-              Try the Demo →
+              Open Dashboard →
             </Link>
             <a
               href="#features"
@@ -245,15 +245,15 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="py-20 bg-violet-600">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">Ready to level up your café?</h2>
+          <h2 className="text-3xl font-bold text-white mb-4">Ready to explore the admin experience?</h2>
           <p className="text-violet-200 text-lg mb-8">
-            Join 150+ board game cafés already using CaféMeeple to streamline their operations.
+            Walk through the seeded dashboard and see how CaféMeeple handles the day-to-day floor flow.
           </p>
           <Link
             href="/admin"
             className="inline-block bg-white text-violet-600 px-8 py-3 rounded-lg font-medium hover:bg-violet-50 transition-colors text-lg"
           >
-            Start Free Trial →
+            Explore Admin Demo →
           </Link>
         </div>
       </section>
