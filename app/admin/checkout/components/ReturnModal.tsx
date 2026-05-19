@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import Modal from "@/components/Modal";
 import { CONDITION_LABELS } from "@/lib/game-utils";
 import { MAX_TEXT_LENGTHS } from "@/lib/constants";
-import type { Checkout } from "@/lib/types";
+import type { Checkout, GameCondition } from "@/lib/types";
 
 interface ReturnModalProps {
   checkout: Checkout;
@@ -15,7 +15,7 @@ interface ReturnModalProps {
 export default function ReturnModal({ checkout, onClose, onReturn }: ReturnModalProps) {
   const conditionId = useId();
   const notesId = useId();
-  const [condition, setCondition] = useState("Good");
+  const [condition, setCondition] = useState<GameCondition | "">("");
   const [notes, setNotes] = useState("");
 
   return (
@@ -26,15 +26,21 @@ export default function ReturnModal({ checkout, onClose, onReturn }: ReturnModal
           <select
             id={conditionId}
             value={condition}
-            onChange={(e) => setCondition(e.target.value)}
+            onChange={(e) => setCondition(e.target.value as GameCondition | "")}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
           >
+            <option value="" disabled>
+              Select the condition observed on return
+            </option>
             {CONDITION_LABELS.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
           </select>
+          <p className="mt-1 text-xs text-gray-500">
+            Choose the condition you observed so the library record is updated accurately.
+          </p>
         </div>
         <div>
           <label htmlFor={notesId} className="block text-sm font-medium text-gray-700 mb-1">Notes (missing pieces, damage, etc.)</label>
@@ -56,8 +62,9 @@ export default function ReturnModal({ checkout, onClose, onReturn }: ReturnModal
             Cancel
           </button>
           <button
-            onClick={() => onReturn(checkout.id, condition, notes)}
-            className="flex-1 bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700"
+            onClick={() => condition && onReturn(checkout.id, condition, notes)}
+            disabled={!condition}
+            className="flex-1 bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Return Game
           </button>

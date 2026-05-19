@@ -135,6 +135,12 @@ export default function CheckoutPage() {
     setActiveIndex(-1);
   };
 
+  const clearSelectedGame = () => {
+    setSelectedGame(null);
+    setGameSearch("");
+    setActiveIndex(-1);
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -170,6 +176,7 @@ export default function CheckoutPage() {
           onSessionChange={setSelectedSession}
           onGameSearchChange={handleGameSearchChange}
           onGameSelect={handleGameSelect}
+          onGameClear={clearSelectedGame}
           onActiveIndexChange={setActiveIndex}
           onCheckout={handleCheckoutGame}
           isSubmitting={isSubmittingCheckout}

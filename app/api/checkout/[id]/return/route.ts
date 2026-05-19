@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
 import { conditionScoreForLabel, CONDITION_LABELS } from "@/lib/game-utils";
-import { firstError, validateEnum, validateMaxLength } from "@/lib/validation";
+import { firstError, validateRequired, validateEnum, validateMaxLength } from "@/lib/validation";
 import { MAX_TEXT_LENGTHS } from "@/lib/constants";
 
 export async function POST(
@@ -14,6 +14,7 @@ export async function POST(
     const { return_condition, notes } = body;
 
     const validationError = firstError(
+      validateRequired(return_condition, "return_condition"),
       validateEnum(return_condition, "return_condition", CONDITION_LABELS),
       validateMaxLength(notes, "notes", MAX_TEXT_LENGTHS.checkoutNotes),
     );
@@ -21,7 +22,7 @@ export async function POST(
       return Response.json({ error: validationError }, { status: 400 });
     }
 
-    const condition = return_condition || "Good";
+    const condition = return_condition;
     const conditionScore = conditionScoreForLabel(condition);
 
     const returnTx = db.transaction(() => {

@@ -20,6 +20,7 @@ interface CheckoutFormProps {
   onSessionChange: (sessionId: number | null) => void;
   onGameSearchChange: (value: string) => void;
   onGameSelect: (gameId: number, title: string) => void;
+  onGameClear: () => void;
   onActiveIndexChange: (value: number | ((prev: number) => number)) => void;
   onCheckout: () => void;
 }
@@ -35,6 +36,7 @@ export default function CheckoutForm({
   onSessionChange,
   onGameSearchChange,
   onGameSelect,
+  onGameClear,
   onActiveIndexChange,
   onCheckout,
 }: CheckoutFormProps) {
@@ -133,8 +135,23 @@ export default function CheckoutForm({
                 </button>
               ))}
               {filteredGames.length === 0 && (
-                <p className="px-3 py-2 text-sm text-gray-400">No available games found</p>
+                <div className="px-3 py-3 text-sm text-gray-500" role="status">
+                  <p className="font-medium text-gray-700">No available games match your search.</p>
+                  <p className="mt-1 text-xs text-gray-500">Try a different title or clear the field to browse again.</p>
+                </div>
               )}
+            </div>
+          )}
+          {selectedGame && (
+            <div className="mt-2 flex items-center justify-between rounded-lg border border-violet-100 bg-violet-50 px-3 py-2 text-xs text-violet-700">
+              <span className="font-medium">Selected game: {gameSearch}</span>
+              <button
+                type="button"
+                onClick={onGameClear}
+                className="rounded px-2 py-1 font-medium text-violet-700 transition hover:bg-violet-100"
+              >
+                Clear
+              </button>
             </div>
           )}
         </div>
