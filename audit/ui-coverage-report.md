@@ -198,3 +198,19 @@ _Only material issues are listed below. Covered features not called out here did
 | 6 | 7 | Checkout filters and guidance | MAJOR | S |
 | 7 | 8 | Reservation search and status filters | MAJOR | S |
 | 8 | 2 | Demo-data seed status visibility | MINOR | XS |
+
+## Phase 6 — Implemented vs Deferred
+
+### Implemented remediations
+- **#1 Operational alerts feed:** `/admin` now turns alerts into actionable cards with direct navigation targets and clearer context (`app/admin/page.tsx`).
+- **#2 Seed visibility:** `/admin` now shows read-only demo-data seed status and record counts without exposing the write endpoint (`app/admin/page.tsx`, `app/api/seed/route.ts`).
+- **#3 Game cover-image metadata:** `GameModal` now supports editing `image_url` with a live preview so catalog media can be maintained in the UI (`app/admin/games/components/GameModal.tsx`).
+- **#4 Real floor plan + table roster CRUD:** tables now have a coordinate-driven floor map, management roster, create/edit modal, session history view, and API validation aligned to stored layout coordinates (`app/admin/tables/page.tsx`, `app/admin/tables/components/FloorMap.tsx`, `app/admin/tables/components/TableManagement.tsx`, `app/admin/tables/components/TableEditorModal.tsx`, `app/admin/tables/components/SessionHistoryTable.tsx`, `app/api/tables/route.ts`, `app/api/tables/[id]/route.ts`, `lib/constants.ts`).
+- **#5 Context-aware session check-in:** selecting a table now carries context into check-in and reserved/maintenance tables show a non-dead-end detail state (`app/admin/tables/components/FloorMap.tsx`, `app/admin/tables/components/CheckInModal.tsx`).
+- **#6 Session history visibility:** the Tables area now exposes recent session history with filters and billing context (`app/admin/tables/page.tsx`, `app/admin/tables/components/SessionHistoryTable.tsx`).
+- **#7 Checkout filters and guidance:** the checkout ledger now exposes session/game filters, reset controls, and stronger empty states (`app/admin/checkout/page.tsx`).
+- **#8 Reservation search and status filters:** reservations now support guest search plus status filtering in addition to date controls (`app/admin/reservations/page.tsx`).
+
+### Deferred / intentionally unchanged
+- **No audit remediations were deferred.**
+- **Still intentionally hidden:** POST `/api/seed` remains unexposed in the admin UI by design, matching the original recommendation to keep the manual seed trigger internal-only (`app/api/seed/route.ts`).
