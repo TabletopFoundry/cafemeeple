@@ -1,12 +1,13 @@
 "use client";
 
-import { useId, useState } from "react";
-import { ErrorMessage, LoadingCard } from "@/components/ui";
+import { useId, useMemo, useState } from "react";
 import { Plus, CalendarDays } from "lucide-react";
+import { ErrorMessage, LoadingCard } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useMultiFetch } from "@/hooks/useFetch";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { VALID_RESERVATION_STATUSES } from "@/lib/constants";
 import type { Reservation, Table } from "@/lib/types";
 import ReservationCalendar from "./components/ReservationCalendar";
 import ReservationList from "./components/ReservationList";
@@ -33,21 +34,33 @@ type TableOption = Pick<Table, "id" | "name" | "capacity">;
 
 type StatusVariant = "success" | "warning" | "danger" | "info" | "default";
 
+const EMPTY_RESERVATIONS: ReservationRecord[] = [];
+const EMPTY_TABLES: TableOption[] = [];
+
 export default function ReservationsPage() {
   usePageTitle("Reservations");
   const filterDateId = useId();
   const showAllId = useId();
+  const searchId = useId();
+  const statusId = useId();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [showAll, setShowAll] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingReservation, setEditingReservation] = useState<ReservationRecord | null>(null);
   const [view, setView] = useState<"calendar" | "list">("list");
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const { addToast } = useToast();
 
-  const resUrl = showAll
-    ? "/api/reservations?limit=500"
-    : `/api/reservations?date=${selectedDate}&limit=150`;
+  const resUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("limit", showAll ? "500" : "150");
+    if (!showAll) params.set("date", selectedDate);
+    if (statusFilter) params.set("status", statusFilter);
+    return `/api/reservations?${params.toString()}`;
+  }, [selectedDate, showAll, statusFilter]);
+
   const { data, loading, error, refresh } = useMultiFetch<{
     reservations: ReservationRecord[];
     tables: TableOption[];
@@ -56,21 +69,36 @@ export default function ReservationsPage() {
     tables: "/api/tables",
   });
 
-  const reservations = data?.reservations ?? [];
-  const tables = data?.tables ?? [];
+  const reservations = data?.reservations ?? EMPTY_RESERVATIONS;
+  const filteredReservations = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return reservations;
+    return reservations.filter((reservation) =>
+      [
+        reservation.guest_name,
+        reservation.guest_email,
+        reservation.guest_phone,
+        reservation.table_name ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [reservations, search]);
+  const tables = data?.tables ?? EMPTY_TABLES;
 
   const handleDelete = async (id: number) => {
     try {
       const res = await fetch(`/api/reservations/${id}`, { method: "DELETE" });
       if (!res.ok) {
-        const data = await res.json().catch(() => null) as { error?: string } | null;
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
         throw new Error(data?.error || "Failed to delete reservation");
       }
       setDeleteConfirm(null);
       refresh();
       addToast("Reservation cancelled", "success");
-    } catch (err) {
-      addToast(err instanceof Error ? err.message : "Failed to delete reservation", "error");
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : "Failed to delete reservation", "error");
       setDeleteConfirm(null);
     }
   };
@@ -83,23 +111,29 @@ export default function ReservationsPage() {
         body: JSON.stringify({ status }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => null) as { error?: string } | null;
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
         throw new Error(data?.error || "Failed to update reservation");
       }
       refresh();
-    } catch (err) {
-      addToast(err instanceof Error ? err.message : "Failed to update reservation", "error");
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : "Failed to update reservation", "error");
     }
   };
 
   const statusVariant = (status: string): StatusVariant => {
     switch (status) {
-      case "confirmed": return "success" as const;
-      case "pending": return "warning" as const;
-      case "cancelled": return "danger" as const;
-      case "completed": return "info" as const;
-      case "no-show": return "danger" as const;
-      default: return "default" as const;
+      case "confirmed":
+        return "success" as const;
+      case "pending":
+        return "warning" as const;
+      case "cancelled":
+        return "danger" as const;
+      case "completed":
+        return "info" as const;
+      case "no-show":
+        return "danger" as const;
+      default:
+        return "default" as const;
     }
   };
 
@@ -116,7 +150,7 @@ export default function ReservationsPage() {
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      const data = await res.json().catch(() => null) as { error?: string } | null;
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
       throw new Error(data?.error || "Failed to save reservation");
     }
     setShowAddModal(false);
@@ -142,7 +176,7 @@ export default function ReservationsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reservations</h1>
-          <p className="text-gray-500 mt-1">{reservations.length} reservations</p>
+          <p className="text-gray-500 mt-1">{filteredReservations.length} reservations</p>
         </div>
         <div className="flex gap-2">
           <div className="flex bg-gray-100 rounded-lg p-0.5">
@@ -182,8 +216,8 @@ export default function ReservationsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-        <div className="flex items-center gap-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 space-y-4">
+        <div className="flex flex-wrap items-center gap-4">
           <label htmlFor={filterDateId} className="sr-only">Filter reservations by date</label>
           <input
             id={filterDateId}
@@ -215,11 +249,53 @@ export default function ReservationsPage() {
             Show all dates
           </label>
         </div>
+        <div className="grid gap-4 md:grid-cols-[1.5fr_0.8fr_auto]">
+          <div>
+            <label htmlFor={searchId} className="mb-1 block text-sm font-medium text-gray-700">
+              Search guests
+            </label>
+            <input
+              id={searchId}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by guest, email, phone, or table"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
+            />
+          </div>
+          <div>
+            <label htmlFor={statusId} className="mb-1 block text-sm font-medium text-gray-700">
+              Status
+            </label>
+            <select
+              id={statusId}
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
+            >
+              <option value="">All statuses</option>
+              {VALID_RESERVATION_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setStatusFilter("");
+            }}
+            className="h-fit self-end rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            Reset filters
+          </button>
+        </div>
       </div>
 
       {view === "calendar" && (
         <ReservationCalendar
-          reservations={reservations}
+          reservations={filteredReservations}
           selectedDate={selectedDate}
           onSelectDate={(date) => {
             setSelectedDate(date);
@@ -231,7 +307,7 @@ export default function ReservationsPage() {
 
       {view === "list" && (
         <ReservationList
-          reservations={reservations}
+          reservations={filteredReservations}
           onNewReservation={() => setShowAddModal(true)}
           onEdit={setEditingReservation}
           onDelete={setDeleteConfirm}
