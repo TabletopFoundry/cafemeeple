@@ -11,12 +11,13 @@ import { EventItem, Rsvp } from "@/lib/types";
 interface RsvpModalProps {
   event: EventItem;
   rsvps: Rsvp[];
+  loading: boolean;
   onClose: () => void;
   onAddRsvp: (eventId: number, name: string, email: string, partySize: number) => Promise<void>;
   onDeleteRsvp: (eventId: number, rsvpId: number) => Promise<void>;
 }
 
-export default function RsvpModal({ event, rsvps, onClose, onAddRsvp, onDeleteRsvp }: RsvpModalProps) {
+export default function RsvpModal({ event, rsvps, loading, onClose, onAddRsvp, onDeleteRsvp }: RsvpModalProps) {
   const nameId = useId();
   const emailId = useId();
   const partySizeId = useId();
@@ -34,6 +35,11 @@ export default function RsvpModal({ event, rsvps, onClose, onAddRsvp, onDeleteRs
     if (!name.trim()) errs.name = "Name is required";
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Invalid email format";
     if (partySize < 1) errs.partySize = "Party size must be at least 1";
+    if (!loading && partySize > remainingSeats) {
+      errs.partySize = remainingSeats === 0
+        ? "This event is already at capacity"
+        : `Only ${remainingSeats} seat${remainingSeats === 1 ? "" : "s"} remaining`;
+    }
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
@@ -64,10 +70,23 @@ export default function RsvpModal({ event, rsvps, onClose, onAddRsvp, onDeleteRs
   };
 
   const totalAttendees = rsvps.reduce((sum, rsvp) => sum + rsvp.party_size, 0);
+  const remainingSeats = Math.max(event.capacity - totalAttendees, 0);
 
   return (
     <Modal title={event.title} subtitle={`${totalAttendees} / ${event.capacity} attendees`} onClose={onClose} size="sm">
       <div className="p-6">
+        <div className="mb-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          <p className="font-medium text-gray-900">
+            {loading
+              ? "Loading attendee totals..."
+              : remainingSeats === 0
+                ? "This event is currently full."
+                : `${remainingSeats} seat${remainingSeats === 1 ? "" : "s"} remaining.`}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            {loading ? "Refreshing RSVPs for this event." : `${totalAttendees} of ${event.capacity} seats are reserved.`}
+          </p>
+        </div>
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-medium text-sm text-gray-700">RSVPs ({rsvps.length})</h3>
           <button type="button" onClick={() => setShowAdd(!showAdd)} className="text-sm text-violet-600 hover:text-violet-700 font-medium">
@@ -123,23 +142,35 @@ export default function RsvpModal({ event, rsvps, onClose, onAddRsvp, onDeleteRs
                   type="number"
                   min={1}
                   value={partySize}
-                  onChange={(e) => setPartySize(parseInt(e.target.value) || 1)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  onChange={(e) => {
+                    setPartySize(parseInt(e.target.value) || 1);
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.partySize;
+                      return next;
+                    });
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 ${errors.partySize ? "border-red-400" : "border-gray-200"}`}
                 />
+                {errors.partySize && <p className="mt-1 text-xs text-red-600">{errors.partySize}</p>}
               </div>
               <button
                 type="button"
                 onClick={handleAdd}
-                disabled={saving}
+                disabled={saving || loading}
                 className="flex-1 bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50"
               >
-                {saving ? "Adding..." : "Add RSVP"}
+                {loading ? "Loading..." : saving ? "Adding..." : "Add RSVP"}
               </button>
             </div>
           </div>
         )}
 
-        {rsvps.length === 0 ? (
+        {loading ? (
+          <div className="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+            Loading RSVPs...
+          </div>
+        ) : rsvps.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-4">No RSVPs yet</p>
         ) : (
           <div className="space-y-2">

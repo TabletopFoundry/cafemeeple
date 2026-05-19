@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -19,7 +19,9 @@ export default function EventsPage() {
   const [editingEvent, setEditingEvent] = useState<EventItem | null>(null);
   const [viewingRsvps, setViewingRsvps] = useState<EventItem | null>(null);
   const [rsvps, setRsvps] = useState<Rsvp[]>([]);
+  const [loadingRsvps, setLoadingRsvps] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const rsvpRequestRef = useRef(0);
   const { data: events, loading, error, refresh } = useFetch<EventItem[]>("/api/events?limit=100");
   const { addToast } = useToast();
   const eventList = events ?? [];
@@ -34,13 +36,26 @@ export default function EventsPage() {
     refresh();
   };
 
-  const refreshRsvps = async (eventId: number) => {
-    const rsvpRes = await fetch(`/api/events/${eventId}/rsvps`);
-    if (!rsvpRes.ok) {
-      const data = await rsvpRes.json().catch(() => null) as { error?: string } | null;
-      throw new Error(data?.error || "Failed to load RSVPs");
+  const loadRsvps = async (eventId: number) => {
+    const requestId = ++rsvpRequestRef.current;
+    setLoadingRsvps(true);
+
+    try {
+      const rsvpRes = await fetch(`/api/events/${eventId}/rsvps`);
+      if (!rsvpRes.ok) {
+        const data = await rsvpRes.json().catch(() => null) as { error?: string } | null;
+        throw new Error(data?.error || "Failed to load RSVPs");
+      }
+
+      const nextRsvps = await rsvpRes.json() as Rsvp[];
+      if (rsvpRequestRef.current === requestId) {
+        setRsvps(nextRsvps);
+      }
+    } finally {
+      if (rsvpRequestRef.current === requestId) {
+        setLoadingRsvps(false);
+      }
     }
-    setRsvps(await rsvpRes.json());
   };
 
   const handleDelete = async (id: number) => {
@@ -61,8 +76,9 @@ export default function EventsPage() {
 
   const viewRsvps = async (event: EventItem) => {
     setViewingRsvps(event);
+    setRsvps([]);
     try {
-      await refreshRsvps(event.id);
+      await loadRsvps(event.id);
     } catch (err) {
       setRsvps([]);
       addToast(err instanceof Error ? err.message : "Failed to load RSVPs", "error");
@@ -79,7 +95,7 @@ export default function EventsPage() {
       const data = await res.json().catch(() => null) as { error?: string } | null;
       throw new Error(data?.error || "Failed to add RSVP");
     }
-    await refreshRsvps(eventId);
+    await loadRsvps(eventId);
     refresh();
   };
 
@@ -89,7 +105,7 @@ export default function EventsPage() {
       const data = await res.json().catch(() => null) as { error?: string } | null;
       throw new Error(data?.error || "Failed to remove RSVP");
     }
-    await refreshRsvps(eventId);
+    await loadRsvps(eventId);
     refresh();
   };
 
@@ -159,7 +175,13 @@ export default function EventsPage() {
         <RsvpModal
           event={viewingRsvps}
           rsvps={rsvps}
-          onClose={() => setViewingRsvps(null)}
+          loading={loadingRsvps}
+          onClose={() => {
+            rsvpRequestRef.current += 1;
+            setLoadingRsvps(false);
+            setRsvps([]);
+            setViewingRsvps(null);
+          }}
           onAddRsvp={addRsvp}
           onDeleteRsvp={deleteRsvp}
         />
