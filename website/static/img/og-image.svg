@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b0a14"/>
+      <stop offset="100%" stop-color="#1a1530"/>
+    </linearGradient>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="0%" r="70%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <g transform="translate(80,90)">
+    <rect width="92" height="92" rx="22" fill="url(#grad)"/>
+    <path d="M28 36h36a12 12 0 0 1 0 24h-3v3a9 9 0 0 1-9 9H37a9 9 0 0 1-9-9V36z" fill="#0b0a14"/>
+  </g>
+
+  <text x="200" y="160" font-family="-apple-system, Inter, sans-serif" font-size="48" font-weight="700" fill="#ffffff">CaféMeeple</text>
+
+  <text x="80" y="320" font-family="-apple-system, Inter, sans-serif" font-size="76" font-weight="800" fill="#ffffff" letter-spacing="-2">
+    <tspan>The operating system</tspan>
+  </text>
+  <text x="80" y="410" font-family="-apple-system, Inter, sans-serif" font-size="76" font-weight="800" fill="url(#grad)" letter-spacing="-2">
+    <tspan>for board game cafés.</tspan>
+  </text>
+
+  <text x="80" y="490" font-family="-apple-system, Inter, sans-serif" font-size="28" fill="#b8b6c4">
+    Game library · Tables · Sessions · Reservations · Events · Analytics
+  </text>
+
+  <text x="80" y="565" font-family="ui-monospace, Menlo, monospace" font-size="22" fill="#a78bfa">
+    $ git clone github.com/TabletopFoundry/cafemeeple
+  </text>
+</svg>

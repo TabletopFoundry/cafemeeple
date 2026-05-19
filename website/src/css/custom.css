@@ -1,0 +1,273 @@
+/**
+ * CaféMeeple documentation theme.
+ * Accent: violet (primary) + emerald (success). Matches the app's Tailwind palette.
+ */
+
+:root {
+  --ifm-color-primary: #8b5cf6;
+  --ifm-color-primary-dark: #7c3aed;
+  --ifm-color-primary-darker: #6d28d9;
+  --ifm-color-primary-darkest: #5b21b6;
+  --ifm-color-primary-light: #a78bfa;
+  --ifm-color-primary-lighter: #c4b5fd;
+  --ifm-color-primary-lightest: #ddd6fe;
+
+  --ifm-code-font-size: 92%;
+  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
+  --docusaurus-highlighted-code-line-bg: rgba(139, 92, 246, 0.12);
+
+  --cm-accent: #10b981;
+  --cm-amber: #f59e0b;
+  --cm-blue: #3b82f6;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #a78bfa;
+  --ifm-color-primary-dark: #8b5cf6;
+  --ifm-color-primary-darker: #7c3aed;
+  --ifm-color-primary-darkest: #6d28d9;
+  --ifm-color-primary-light: #c4b5fd;
+  --ifm-color-primary-lighter: #ddd6fe;
+  --ifm-color-primary-lightest: #ede9fe;
+
+  --ifm-background-color: #0b0a14;
+  --ifm-background-surface-color: #15131f;
+  --docusaurus-highlighted-code-line-bg: rgba(167, 139, 250, 0.18);
+}
+
+/* ---------------------------- Landing page ---------------------------- */
+.hero-cm {
+  padding: 5rem 1rem 4rem;
+  text-align: center;
+  background: radial-gradient(
+      ellipse at top,
+      rgba(139, 92, 246, 0.22),
+      transparent 60%
+    ),
+    radial-gradient(ellipse at bottom right, rgba(16, 185, 129, 0.12), transparent 55%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.hero-cm__eyebrow {
+  display: inline-block;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary-lighter);
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: 999px;
+  margin-bottom: 1.5rem;
+}
+
+.hero-cm__title {
+  font-size: clamp(2.4rem, 5vw, 3.8rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 auto 1.25rem;
+  max-width: 22ch;
+}
+
+.hero-cm__title span {
+  background: linear-gradient(90deg, #a78bfa 0%, #34d399 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-cm__subtitle {
+  font-size: 1.2rem;
+  line-height: 1.55;
+  margin: 0 auto 2rem;
+  max-width: 56ch;
+  color: var(--ifm-color-emphasis-700);
+}
+
+[data-theme='dark'] .hero-cm__subtitle {
+  color: #b8b6c4;
+}
+
+.hero-cm__ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 2.25rem;
+}
+
+.hero-cm__install {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  background: rgba(15, 14, 25, 0.7);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 10px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+  color: #e6e4f0;
+  backdrop-filter: blur(8px);
+}
+
+.hero-cm__install::before {
+  content: '$';
+  color: var(--ifm-color-primary-light);
+  font-weight: 700;
+}
+
+.hero-cm__copy {
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ifm-color-primary-lighter);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hero-cm__copy:hover {
+  background: rgba(139, 92, 246, 0.18);
+}
+
+/* ---------------------------- Feature grid ---------------------------- */
+.features-cm {
+  padding: 4rem 1rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.features-cm__title {
+  font-size: 2rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.features-cm__lede {
+  text-align: center;
+  color: var(--ifm-color-emphasis-700);
+  margin-bottom: 3rem;
+  font-size: 1.05rem;
+}
+
+.features-cm__grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.feature-cm {
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.feature-cm:hover {
+  transform: translateY(-2px);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
+.feature-cm__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--ifm-color-primary-light);
+  margin-bottom: 1rem;
+}
+
+.feature-cm__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.feature-cm__desc {
+  font-size: 0.96rem;
+  line-height: 1.55;
+  color: var(--ifm-color-emphasis-700);
+  margin: 0;
+}
+
+[data-theme='dark'] .feature-cm__desc {
+  color: #b8b6c4;
+}
+
+/* ---------------------------- Stats strip ---------------------------- */
+.stats-cm {
+  padding: 3rem 1rem;
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.06), transparent);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stats-cm__grid {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.stats-cm__value {
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, #a78bfa, #34d399);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.stats-cm__label {
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-600);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ---------------------------- Code preview ---------------------------- */
+.preview-cm {
+  padding: 4rem 1rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.preview-cm__grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .preview-cm__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.preview-cm__title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.preview-cm__copy {
+  color: var(--ifm-color-emphasis-700);
+  font-size: 1rem;
+  line-height: 1.6;
+}
