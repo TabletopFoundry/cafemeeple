@@ -86,6 +86,12 @@ export const TABLE_SECTIONS = [
   "Mezzanine",
 ] as const;
 
+/** Maximum floor-plan coordinates accepted by the table-management UI/API. */
+export const TABLE_LAYOUT_LIMITS = {
+  maxX: 1000,
+  maxY: 1000,
+} as const;
+
 // ---------------------------------------------------------------------------
 // Input limits
 // ---------------------------------------------------------------------------

@@ -1,6 +1,8 @@
 import { getDb } from "@/lib/db";
 import { firstError, validateRequired, validatePositiveInt, validateRange, validateEnum, validateMaxLength } from "@/lib/validation";
-import { VALID_TABLE_SHAPES, TABLE_SECTIONS, MAX_TEXT_LENGTHS } from "@/lib/constants";
+import { VALID_TABLE_SHAPES, TABLE_SECTIONS, TABLE_LAYOUT_LIMITS, MAX_TEXT_LENGTHS } from "@/lib/constants";
+
+const VALID_MANUAL_TABLE_STATUSES = ["available", "maintenance"] as const;
 
 export async function GET() {
   try {
@@ -37,15 +39,16 @@ export async function POST(request: Request) {
   try {
     const db = getDb();
     const body = await request.json();
-    const { name, capacity, section, x_position, y_position, shape } = body;
+    const { name, capacity, section, x_position, y_position, shape, status } = body;
 
     const validationError = firstError(
       validateRequired(name, "name"),
       validatePositiveInt(capacity, "capacity"),
-      validateRange(x_position, "x_position", 0, 100),
-      validateRange(y_position, "y_position", 0, 100),
+      validateRange(x_position, "x_position", 0, TABLE_LAYOUT_LIMITS.maxX),
+      validateRange(y_position, "y_position", 0, TABLE_LAYOUT_LIMITS.maxY),
       validateEnum(shape, "shape", VALID_TABLE_SHAPES),
       validateEnum(section, "section", TABLE_SECTIONS),
+      validateEnum(status, "status", VALID_MANUAL_TABLE_STATUSES),
       validateMaxLength(name, "name", MAX_TEXT_LENGTHS.tableName),
     );
     if (validationError) {
@@ -55,9 +58,17 @@ export async function POST(request: Request) {
     let result;
     try {
       result = db.prepare(`
-        INSERT INTO tables (name, capacity, section, x_position, y_position, shape)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(name, capacity || 4, section || "Main Floor", x_position || 0, y_position || 0, shape || "rectangle");
+        INSERT INTO tables (name, capacity, section, status, x_position, y_position, shape)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        name,
+        capacity || 4,
+        section || "Main Floor",
+        status || "available",
+        x_position || 0,
+        y_position || 0,
+        shape || "rectangle",
+      );
     } catch (err) {
       if (err instanceof Error && err.message.includes("UNIQUE constraint failed")) {
         return Response.json({ error: "A table with this name already exists" }, { status: 409 });

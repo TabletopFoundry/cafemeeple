@@ -1,6 +1,6 @@
 import { getDb } from "@/lib/db";
 import { firstError, validateRequired, validatePositiveInt, validateRange, validateEnum, validateMaxLength } from "@/lib/validation";
-import { VALID_TABLE_SHAPES, VALID_TABLE_STATUSES, TABLE_SECTIONS, MAX_TEXT_LENGTHS } from "@/lib/constants";
+import { VALID_TABLE_SHAPES, VALID_TABLE_STATUSES, TABLE_SECTIONS, TABLE_LAYOUT_LIMITS, MAX_TEXT_LENGTHS } from "@/lib/constants";
 
 export async function PUT(
   request: Request,
@@ -16,8 +16,8 @@ export async function PUT(
     const validationError = firstError(
       validateRequired(body.name, "name"),
       validatePositiveInt(body.capacity, "capacity"),
-      validateRange(body.x_position, "x_position", 0, 100),
-      validateRange(body.y_position, "y_position", 0, 100),
+      validateRange(body.x_position, "x_position", 0, TABLE_LAYOUT_LIMITS.maxX),
+      validateRange(body.y_position, "y_position", 0, TABLE_LAYOUT_LIMITS.maxY),
       validateEnum(body.shape, "shape", VALID_TABLE_SHAPES),
       validateEnum(body.section, "section", TABLE_SECTIONS),
       validateEnum(body.status, "status", VALID_TABLE_STATUSES),

@@ -8,11 +8,17 @@ import type { Table } from "@/lib/types";
 
 interface CheckInModalProps {
   tables: Table[];
+  initialTableId?: number | null;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export default function CheckInModal({ tables, onClose, onSaved }: CheckInModalProps) {
+export default function CheckInModal({
+  tables,
+  initialTableId,
+  onClose,
+  onSaved,
+}: CheckInModalProps) {
   if (tables.length === 0) {
     return (
       <Modal title="Seat a new party" onClose={onClose}>
@@ -30,17 +36,31 @@ export default function CheckInModal({ tables, onClose, onSaved }: CheckInModalP
     );
   }
 
-  return <CheckInForm tables={tables} onClose={onClose} onSaved={onSaved} />;
+  return (
+    <CheckInForm
+      tables={tables}
+      initialTableId={initialTableId}
+      onClose={onClose}
+      onSaved={onSaved}
+    />
+  );
 }
 
-function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
+function CheckInForm({
+  tables,
+  initialTableId,
+  onClose,
+  onSaved,
+}: CheckInModalProps) {
+  const defaultTableId =
+    tables.find((table) => table.id === initialTableId)?.id ?? tables[0]?.id ?? 0;
   const tableId = useId();
   const partyNameId = useId();
   const guestCountId = useId();
   const rateTypeId = useId();
   const coverChargeId = useId();
   const [form, setForm] = useState({
-    table_id: tables[0]?.id ?? 0,
+    table_id: defaultTableId,
     party_name: "",
     party_size: 2,
     rate_type: "per_person",
@@ -62,28 +82,42 @@ function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
         body: JSON.stringify(form),
       });
 
-      const json = await response.json();
+      const json = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) {
-        throw new Error(json.error || "Failed to check in party");
+        throw new Error(json?.error || "Failed to check in party");
       }
 
       onSaved();
-    } catch (err) {
-      addToast(err instanceof Error ? err.message : "Failed to check in party", "error");
+    } catch (error) {
+      addToast(
+        error instanceof Error ? error.message : "Failed to check in party",
+        "error",
+      );
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Modal title="Seat a new party" onClose={onClose}>
+    <Modal
+      title="Seat a new party"
+      subtitle={selectedTable ? `${selectedTable.name} · ${selectedTable.section}` : undefined}
+      onClose={onClose}
+    >
       <form onSubmit={handleSubmit} className="space-y-4 p-6">
         <div>
-          <label htmlFor={tableId} className="mb-1 block text-sm font-medium text-gray-700">Table</label>
+          <label htmlFor={tableId} className="mb-1 block text-sm font-medium text-gray-700">
+            Table
+          </label>
           <select
             id={tableId}
             value={form.table_id}
-            onChange={(event) => setForm({ ...form, table_id: Number(event.target.value) })}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                table_id: Number(event.target.value),
+              }))
+            }
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
           >
             {tables.map((table) => (
@@ -95,18 +129,24 @@ function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label htmlFor={partyNameId} className="mb-1 block text-sm font-medium text-gray-700">Party name</label>
+            <label htmlFor={partyNameId} className="mb-1 block text-sm font-medium text-gray-700">
+              Party name
+            </label>
             <input
               id={partyNameId}
               value={form.party_name}
               maxLength={MAX_TEXT_LENGTHS.partyName}
-              onChange={(event) => setForm({ ...form, party_name: event.target.value })}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, party_name: event.target.value }))
+              }
               placeholder="Walk-in"
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
             />
           </div>
           <div>
-            <label htmlFor={guestCountId} className="mb-1 block text-sm font-medium text-gray-700">Guest count</label>
+            <label htmlFor={guestCountId} className="mb-1 block text-sm font-medium text-gray-700">
+              Guest count
+            </label>
             <input
               id={guestCountId}
               type="number"
@@ -114,7 +154,10 @@ function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
               max={selectedTable?.capacity ?? 12}
               value={form.party_size}
               onChange={(event) =>
-                setForm({ ...form, party_size: Number(event.target.value) || 1 })
+                setForm((current) => ({
+                  ...current,
+                  party_size: Number(event.target.value) || 1,
+                }))
               }
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
             />
@@ -122,16 +165,18 @@ function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label htmlFor={rateTypeId} className="mb-1 block text-sm font-medium text-gray-700">Rate model</label>
+            <label htmlFor={rateTypeId} className="mb-1 block text-sm font-medium text-gray-700">
+              Rate model
+            </label>
             <select
               id={rateTypeId}
               value={form.rate_type}
               onChange={(event) =>
-                setForm({
-                  ...form,
+                setForm((current) => ({
+                  ...current,
                   rate_type: event.target.value,
                   cover_charge_per_person: event.target.value === "per_table" ? 24 : 5,
-                })
+                }))
               }
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
             >
@@ -150,7 +195,10 @@ function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
               step={0.5}
               value={form.cover_charge_per_person}
               onChange={(event) =>
-                setForm({ ...form, cover_charge_per_person: Number(event.target.value) || 0 })
+                setForm((current) => ({
+                  ...current,
+                  cover_charge_per_person: Number(event.target.value) || 0,
+                }))
               }
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
             />
@@ -160,9 +208,10 @@ function CheckInForm({ tables, onClose, onSaved }: CheckInModalProps) {
           <p className="font-medium text-gray-900">Estimated cover charge</p>
           <p className="mt-1 text-lg font-semibold text-violet-700">
             ${
-              (form.rate_type === "per_person"
-                ? form.party_size * form.cover_charge_per_person
-                : form.cover_charge_per_person
+              (
+                form.rate_type === "per_person"
+                  ? form.party_size * form.cover_charge_per_person
+                  : form.cover_charge_per_person
               ).toFixed(2)
             }
           </p>
