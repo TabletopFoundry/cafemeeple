@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ErrorMessage, EmptyState, LoadingCard } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import { useMultiFetch } from "@/hooks/useFetch";
@@ -145,10 +145,6 @@ export default function CheckoutPage() {
     setActiveIndex(-1);
   };
 
-  useEffect(() => {
-    setHistoryVisibleCount(HISTORY_PAGE_SIZE);
-  }, [recordSessionFilter, recordGameFilter]);
-
   if (loading) {
     return (
       <div className="space-y-6">
@@ -221,6 +217,7 @@ export default function CheckoutPage() {
               onClick={() => {
                 setRecordSessionFilter(null);
                 setRecordGameFilter(null);
+                setHistoryVisibleCount(HISTORY_PAGE_SIZE);
               }}
               className="w-fit rounded-lg px-3 py-2 text-sm font-medium text-violet-600 hover:bg-violet-50"
             >
@@ -233,9 +230,10 @@ export default function CheckoutPage() {
             <span className="mb-1 block text-sm font-medium text-gray-700">Session</span>
             <select
               value={recordSessionFilter ?? ""}
-              onChange={(event) =>
-                setRecordSessionFilter(event.target.value ? Number(event.target.value) : null)
-              }
+              onChange={(event) => {
+                setRecordSessionFilter(event.target.value ? Number(event.target.value) : null);
+                setHistoryVisibleCount(HISTORY_PAGE_SIZE);
+              }}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
             >
               <option value="">All sessions</option>
@@ -250,9 +248,10 @@ export default function CheckoutPage() {
             <span className="mb-1 block text-sm font-medium text-gray-700">Game</span>
             <select
               value={recordGameFilter ?? ""}
-              onChange={(event) =>
-                setRecordGameFilter(event.target.value ? Number(event.target.value) : null)
-              }
+              onChange={(event) => {
+                setRecordGameFilter(event.target.value ? Number(event.target.value) : null);
+                setHistoryVisibleCount(HISTORY_PAGE_SIZE);
+              }}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none ring-violet-500 transition focus:ring-2"
             >
               <option value="">All games</option>
@@ -307,6 +306,7 @@ export default function CheckoutPage() {
                   onClick={() => {
                     setRecordSessionFilter(null);
                     setRecordGameFilter(null);
+                    setHistoryVisibleCount(HISTORY_PAGE_SIZE);
                   }}
                   className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
                 >
@@ -336,6 +336,7 @@ export default function CheckoutPage() {
                   onClick={() => {
                     setRecordSessionFilter(null);
                     setRecordGameFilter(null);
+                    setHistoryVisibleCount(HISTORY_PAGE_SIZE);
                   }}
                   className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
                 >

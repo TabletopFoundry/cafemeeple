@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { Trash2 } from "lucide-react";
 import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
@@ -73,12 +73,7 @@ export default function RsvpModal({ event, rsvps, loading, onClose, onAddRsvp, o
   const remainingSeats = Math.max(event.capacity - totalAttendees, 0);
   const registrationsClosed = event.status === "cancelled" || event.status === "completed";
   const canOpenAdd = !loading && !registrationsClosed && remainingSeats > 0;
-
-  useEffect(() => {
-    if (!canOpenAdd) {
-      setShowAdd(false);
-    }
-  }, [canOpenAdd]);
+  const isAddFormOpen = showAdd && canOpenAdd;
 
   return (
     <Modal title={event.title} subtitle={`${totalAttendees} / ${event.capacity} attendees`} onClose={onClose} size="sm">
@@ -111,11 +106,11 @@ export default function RsvpModal({ event, rsvps, loading, onClose, onAddRsvp, o
             disabled={!canOpenAdd}
             className="text-sm font-medium text-violet-600 hover:text-violet-700 disabled:cursor-not-allowed disabled:text-gray-400"
           >
-            {showAdd ? "Cancel" : canOpenAdd ? "+ Add RSVP" : "RSVPs unavailable"}
+            {isAddFormOpen ? "Cancel" : canOpenAdd ? "+ Add RSVP" : "RSVPs unavailable"}
           </button>
         </div>
 
-        {showAdd && (
+        {isAddFormOpen && (
           <div className="bg-gray-50 p-3 rounded-lg mb-4 space-y-3">
             <div>
               <label htmlFor={nameId} className="mb-1 block text-sm font-medium text-gray-700">Guest name *</label>
@@ -182,7 +177,7 @@ export default function RsvpModal({ event, rsvps, loading, onClose, onAddRsvp, o
                 disabled={saving || !canOpenAdd}
                 className="flex-1 bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50"
               >
-                {loading ? "Loading..." : saving ? "Adding..." : "Add RSVP"}
+                {!canOpenAdd ? "RSVPs closed" : saving ? "Adding..." : "Add RSVP"}
               </button>
             </div>
           </div>
