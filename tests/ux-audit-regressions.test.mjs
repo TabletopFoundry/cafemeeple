@@ -85,12 +85,16 @@ test("game library filters expose reset recovery and active-filter feedback", ()
 test("event RSVP modal surfaces loading and remaining-seat guidance", () => {
   const eventsPageSource = readSource("app/admin/events/page.tsx");
   const rsvpModalSource = readSource("app/admin/events/components/RsvpModal.tsx");
+  const rsvpRouteSource = readSource("app/api/events/[id]/rsvps/route.ts");
 
   assert.match(eventsPageSource, /const \[loadingRsvps, setLoadingRsvps\] = useState\(false\);/);
   assert.match(eventsPageSource, /setRsvps\(\[\]\);/);
   assert.match(rsvpModalSource, /Loading attendee totals\.\.\./);
   assert.match(rsvpModalSource, /Loading RSVPs\.\.\./);
   assert.match(rsvpModalSource, /This event is currently full\./);
+  assert.match(rsvpModalSource, /RSVPs unavailable/);
+  assert.match(rsvpModalSource, /disabled=\{!canOpenAdd\}/);
+  assert.match(rsvpRouteSource, /RSVPs are closed for this event/);
 });
 
 test("reservation zero states explain when filters hide results", () => {

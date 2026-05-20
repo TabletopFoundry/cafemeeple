@@ -108,11 +108,11 @@ This fresh pass still found **5 actionable UX issues** on the current build: res
 
 ## Implementation Status
 
-**Status:** 2 of 5 remediations complete.
+**Status:** 3 of 5 remediations complete.
 
 - [x] Make reservation table choices status-aware and block maintenance-table assignment.
 - [x] Expose older checkout history beyond the 50-row UI cap.
-- [ ] Disable RSVP entry for sold-out or unavailable events before submit.
+- [x] Disable RSVP entry for sold-out or unavailable events before submit.
 - [ ] Require explicit floor-map selection before showing table details.
 - [ ] Add success feedback for reservation status changes.
 

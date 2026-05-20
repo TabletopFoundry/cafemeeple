@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Trash2 } from "lucide-react";
 import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
@@ -71,6 +71,14 @@ export default function RsvpModal({ event, rsvps, loading, onClose, onAddRsvp, o
 
   const totalAttendees = rsvps.reduce((sum, rsvp) => sum + rsvp.party_size, 0);
   const remainingSeats = Math.max(event.capacity - totalAttendees, 0);
+  const registrationsClosed = event.status === "cancelled" || event.status === "completed";
+  const canOpenAdd = !loading && !registrationsClosed && remainingSeats > 0;
+
+  useEffect(() => {
+    if (!canOpenAdd) {
+      setShowAdd(false);
+    }
+  }, [canOpenAdd]);
 
   return (
     <Modal title={event.title} subtitle={`${totalAttendees} / ${event.capacity} attendees`} onClose={onClose} size="sm">
@@ -79,18 +87,31 @@ export default function RsvpModal({ event, rsvps, loading, onClose, onAddRsvp, o
           <p className="font-medium text-gray-900">
             {loading
               ? "Loading attendee totals..."
-              : remainingSeats === 0
-                ? "This event is currently full."
-                : `${remainingSeats} seat${remainingSeats === 1 ? "" : "s"} remaining.`}
+              : event.status === "cancelled"
+                ? "This event has been cancelled."
+                : event.status === "completed"
+                  ? "This event is complete."
+                  : remainingSeats === 0
+                    ? "This event is currently full."
+                    : `${remainingSeats} seat${remainingSeats === 1 ? "" : "s"} remaining.`}
           </p>
           <p className="mt-1 text-xs text-gray-500">
-            {loading ? "Refreshing RSVPs for this event." : `${totalAttendees} of ${event.capacity} seats are reserved.`}
+            {loading
+              ? "Refreshing RSVPs for this event."
+              : registrationsClosed
+                ? "New RSVPs are closed for events that are no longer accepting guests."
+                : `${totalAttendees} of ${event.capacity} seats are reserved.`}
           </p>
         </div>
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-medium text-sm text-gray-700">RSVPs ({rsvps.length})</h3>
-          <button type="button" onClick={() => setShowAdd(!showAdd)} className="text-sm text-violet-600 hover:text-violet-700 font-medium">
-            {showAdd ? "Cancel" : "+ Add RSVP"}
+          <button
+            type="button"
+            onClick={() => setShowAdd(!showAdd)}
+            disabled={!canOpenAdd}
+            className="text-sm font-medium text-violet-600 hover:text-violet-700 disabled:cursor-not-allowed disabled:text-gray-400"
+          >
+            {showAdd ? "Cancel" : canOpenAdd ? "+ Add RSVP" : "RSVPs unavailable"}
           </button>
         </div>
 
@@ -142,6 +163,7 @@ export default function RsvpModal({ event, rsvps, loading, onClose, onAddRsvp, o
                   type="number"
                   min={1}
                   value={partySize}
+                  max={Math.max(remainingSeats, 1)}
                   onChange={(e) => {
                     setPartySize(parseInt(e.target.value) || 1);
                     setErrors((prev) => {
@@ -157,7 +179,7 @@ export default function RsvpModal({ event, rsvps, loading, onClose, onAddRsvp, o
               <button
                 type="button"
                 onClick={handleAdd}
-                disabled={saving || loading}
+                disabled={saving || !canOpenAdd}
                 className="flex-1 bg-violet-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-violet-700 disabled:opacity-50"
               >
                 {loading ? "Loading..." : saving ? "Adding..." : "Add RSVP"}

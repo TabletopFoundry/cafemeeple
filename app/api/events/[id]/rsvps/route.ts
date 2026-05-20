@@ -40,9 +40,14 @@ export async function POST(
       return Response.json({ error: validationError }, { status: 400 });
     }
 
-    const event = db.prepare("SELECT * FROM events WHERE id = ?").get(id) as { capacity: number } | undefined;
+    const event = db.prepare("SELECT * FROM events WHERE id = ?").get(id) as
+      | { capacity: number; status: string }
+      | undefined;
     if (!event) {
       return Response.json({ error: "Event not found" }, { status: 404 });
+    }
+    if (event.status === "cancelled" || event.status === "completed") {
+      return Response.json({ error: "RSVPs are closed for this event" }, { status: 409 });
     }
 
     const newPartySize = party_size || 1;
