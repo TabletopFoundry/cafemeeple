@@ -1,108 +1,90 @@
 # UX Coverage Audit — CaféMeeple
 
-Fresh third-pass audit of the **current** Next.js 16 App Router codebase. Setup completed with `find . -type f`, the root `package.json`, route inventory under `app/**`, shared UI under `components/**`, data/validation under `lib/**`, and environment/config review in `.env.example`, `next.config.ts`, `lib/db.ts`, and `app/api/seed/route.ts`. There is **no runtime feature-flag system** in the product UI today; the only behavior gates are dev-only seeding (`app/api/seed/route.ts`, `lib/db.ts`) and the optional `NEXT_PUBLIC_BASE_URL` env var in `.env.example`.
+Fresh fourth-pass audit of the **current** Next.js 16 App Router codebase. This pass re-reviewed the landing flow, admin workspaces, modal workflows, empty states, and API guardrails across `app/**`, `components/**`, `hooks/useFetch.ts`, `lib/types.ts`, and the relevant route handlers under `app/api/**`.
 
-The shipped surface is broad and cohesive, but this fresh pass still found **5 actionable UX issues** on the current codebase: misleading demo marketing, weak game-filter recovery, filter-unaware reservation empty states, check-in capacity drift, and developer-centric admin copy leaking into operator UI.
+Previously audited fixes were verified as still landed and are **not** re-opened in this report: truthful seeded-demo positioning (`app/page.tsx`), game filter reset/recovery (`app/admin/games/page.tsx`, `app/admin/games/components/GameFilterBar.tsx`), filter-aware reservation zero states (`app/admin/reservations/page.tsx`, `app/admin/reservations/components/ReservationList.tsx`, `app/admin/reservations/components/ReservationCalendar.tsx`), check-in capacity clamping (`app/admin/tables/components/CheckInModal.tsx`), mobile drawer affordances (`app/admin/layout.tsx`), and operator-oriented admin copy (`app/admin/page.tsx`, `app/admin/checkout/page.tsx`, `app/admin/tables/**`).
+
+This fresh pass still found **5 actionable UX issues** on the current build: reservation table assignment ignores live serviceability cues, checkout history truncates older returns, sold-out events still advertise RSVP entry, the floor map preselects an arbitrary table, and reservation status updates complete silently.
 
 ## Phase 1 — Feature Inventory by Domain
 
 ### Marketing & Entry
-1. **Landing page / entry route** — hero, feature cards, stats, demo CTA, marketing sections (`app/page.tsx`).
-2. **Public-to-admin handoff** — direct jump into `/admin` from desktop and mobile CTAs (`app/page.tsx`).
+1. **Landing page / admin handoff** — seeded-demo positioning and CTA into `/admin` (`app/page.tsx`).
 
 ### Admin Shell & Shared UI
-3. **Admin layout shell** — mobile header, sidebar, page framing (`app/admin/layout.tsx`, `components/Sidebar.tsx`).
-4. **Shared feedback primitives** — modal, confirm dialog, toast, error boundary, empty/error/loading states (`components/Modal.tsx`, `components/ConfirmDialog.tsx`, `components/Toast.tsx`, `components/ErrorBoundary.tsx`, `components/ui.tsx`).
+2. **Admin layout shell** — mobile menu, sidebar navigation, page framing (`app/admin/layout.tsx`, `components/Sidebar.tsx`).
+3. **Shared feedback primitives** — empty states, badges, stat cards, error messages (`components/ui.tsx`, `components/Toast.tsx`).
 
-### Dashboard & Ops Visibility
-5. **Dashboard KPIs and alerts** — active tables, checkouts, revenue, visitors, alert cards (`app/admin/page.tsx`, `app/api/dashboard/route.ts`).
-6. **Revenue and event insights** — charts, upcoming events, popular games (`app/admin/page.tsx`).
-7. **Demo-data status** — seeded/empty state surfaced in UI while seed endpoint remains hidden (`app/admin/page.tsx`, `app/api/seed/route.ts`, `lib/db.ts`).
-
-### Games
-8. **Game library browse/filter** — search, category, condition, complexity, player count, replacement-only filters (`app/admin/games/page.tsx`, `app/admin/games/components/GameFilterBar.tsx`, `app/api/games/route.ts`).
-9. **Game browsing modes** — grid and list presentations (`app/admin/games/components/GameGrid.tsx`, `app/admin/games/components/GameListTable.tsx`).
-10. **Game CRUD** — add/edit modal with preview, copy counts, condition and replacement thresholds (`app/admin/games/components/GameModal.tsx`, `app/api/games/[id]/route.ts`).
+### Dashboard & Library
+4. **Dashboard KPIs and alerts** — seeded data status, revenue mix, upcoming events, popular games (`app/admin/page.tsx`, `app/api/dashboard/route.ts`, `app/api/seed/route.ts`).
+5. **Game library browse and maintenance** — filters, grid/list views, add/edit/remove flows (`app/admin/games/page.tsx`, `app/admin/games/components/**`, `app/api/games/**`).
 
 ### Tables, Sessions, and Billing
-11. **Floor operations** — floor map, live list, session history, table management (`app/admin/tables/page.tsx`, `app/admin/tables/components/FloorMap.tsx`, `TableList.tsx`, `SessionHistoryTable.tsx`, `TableManagement.tsx`).
-12. **Check-in and checkout** — seat party, estimate charge, close billing session (`app/admin/tables/components/CheckInModal.tsx`, `CheckoutModal.tsx`, `app/api/sessions/route.ts`, `app/api/sessions/[id]/route.ts`).
-13. **Table editing** — capacity, section, shape, coordinates, maintenance mode (`app/admin/tables/components/TableEditorModal.tsx`, `app/api/tables/[id]/route.ts`).
+6. **Floor operations** — floor map, active list, session history, table management (`app/admin/tables/page.tsx`, `app/admin/tables/components/FloorMap.tsx`, `TableList.tsx`, `SessionHistoryTable.tsx`, `TableManagement.tsx`).
+7. **Check-in / checkout** — new party seating and billing closeout (`app/admin/tables/components/CheckInModal.tsx`, `CheckoutModal.tsx`, `app/api/sessions/**`).
+8. **Table editing** — capacity, section, coordinates, maintenance mode (`app/admin/tables/components/TableEditorModal.tsx`, `app/api/tables/**`).
 
-### Checkout
-14. **Game assignment flow** — active session select, searchable game combobox, checkout create (`app/admin/checkout/page.tsx`, `app/admin/checkout/components/CheckoutForm.tsx`, `app/api/checkout/route.ts`).
-15. **Active and historical checkout records** — active table ledger, returned-history table, return modal (`CheckoutTable.tsx`, `CheckoutHistory.tsx`, `ReturnModal.tsx`, `app/api/checkout/[id]/return/route.ts`).
+### Checkout Ledger
+9. **Game assignment** — active session selection plus searchable game combobox (`app/admin/checkout/page.tsx`, `app/admin/checkout/components/CheckoutForm.tsx`, `app/api/checkout/route.ts`).
+10. **Active and historical records** — active ledger, return flow, returned history (`app/admin/checkout/components/CheckoutTable.tsx`, `CheckoutHistory.tsx`, `ReturnModal.tsx`, `app/api/checkout/[id]/return/route.ts`).
 
-### Reservations
-16. **Reservation filtering and views** — date/show-all/status/search controls with list/calendar toggle (`app/admin/reservations/page.tsx`).
-17. **Reservation list & lifecycle actions** — confirm, no-show, edit, delete (`app/admin/reservations/components/ReservationList.tsx`, `app/api/reservations/[id]/route.ts`).
-18. **Reservation calendar** — weekly strip and per-day cards (`app/admin/reservations/components/ReservationCalendar.tsx`).
-19. **Reservation CRUD** — modal-backed create/edit flow (`app/admin/reservations/components/ReservationModal.tsx`, `app/api/reservations/route.ts`).
-
-### Events & RSVPs
-20. **Event catalog** — card grid, occupancy cues, edit/delete entry points (`app/admin/events/page.tsx`, `EventCard.tsx`).
-21. **Event CRUD** — create/edit modal with timing, type, capacity, and status (`app/admin/events/components/EventModal.tsx`, `app/api/events/[id]/route.ts`).
-22. **RSVP management** — load/add/remove attendees with client and server capacity checks (`app/admin/events/components/RsvpModal.tsx`, `app/api/events/[id]/rsvps/route.ts`, `app/api/events/[id]/rsvps/[rsvpId]/route.ts`).
+### Reservations & Events
+11. **Reservation filtering and CRUD** — date/status/search filters, list/calendar views, modal-backed create/edit/delete (`app/admin/reservations/page.tsx`, `app/admin/reservations/components/**`, `app/api/reservations/**`).
+12. **Event catalog and RSVP management** — event cards, create/edit modal, attendee add/remove flows (`app/admin/events/page.tsx`, `app/admin/events/components/**`, `app/api/events/**`).
 
 ## Phase 2 — Coverage Table
 
 | # | Feature | Domain | Coverage | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | Landing page demo positioning | Marketing | [PARTIAL] | `app/page.tsx` still frames the product like a live commercial SaaS with fabricated stats/pricing/testimonials instead of the current seeded demo. |
-| 2 | Admin shell navigation | Shell | [COVERED] | Mobile drawer, sidebar, and shell framing are in place (`app/admin/layout.tsx`, `components/Sidebar.tsx`). |
-| 3 | Dashboard KPI and alert visibility | Dashboard | [COVERED] | End-to-end via `app/admin/page.tsx` and `app/api/dashboard/route.ts`. |
-| 4 | Demo seed readiness visibility | Dashboard | [PARTIAL] | Technically visible, but copy in `app/admin/page.tsx` still leaks endpoint details to operators. |
-| 5 | Game filtering and browse modes | Games | [PARTIAL] | Filtering works, but `GameFilterBar.tsx` has no reset/active-filter recovery despite six controls. |
-| 6 | Game CRUD and replacement review | Games | [COVERED] | `GameModal.tsx`, `GameGrid.tsx`, `GameListTable.tsx`, and `app/api/games/[id]/route.ts` are complete. |
-| 7 | Floor map and live table list | Tables | [COVERED] | Map/list/history/manage flows are present in `app/admin/tables/page.tsx`. |
-| 8 | New-party check-in | Tables | [PARTIAL] | `CheckInModal.tsx` estimates charges, but the client can drift into over-capacity states before the API rejects them. |
-| 9 | Billing summary and session close | Tables | [COVERED] | `CheckoutModal.tsx` and `app/api/sessions/[id]/route.ts` close the loop cleanly. |
-| 10 | Table management/editor | Tables | [PARTIAL] | CRUD exists, but some operator copy still exposes file paths and raw implementation detail (`TableManagement.tsx`, `FloorMap.tsx`). |
-| 11 | Game checkout assignment | Checkout | [COVERED] | Search/select/assign flow is solid in `CheckoutForm.tsx` and `/api/checkout`. |
-| 12 | Checkout history filtering | Checkout | [PARTIAL] | Filters work, but the helper copy in `app/admin/checkout/page.tsx` is written for developers, not staff. |
-| 13 | Reservation toolbar and CRUD | Reservations | [COVERED] | Filters, list/calendar toggle, modal CRUD, and lifecycle actions are wired. |
-| 14 | Reservation empty-state recovery | Reservations | [PARTIAL] | `ReservationList.tsx` and `ReservationCalendar.tsx` show generic no-data messages even when filters/search are the cause. |
-| 15 | Event catalog and CRUD | Events | [COVERED] | Catalog cards and modal-backed editing are in place. |
-| 16 | RSVP management | Events | [COVERED] | Client/server capacity checks and attendee management are present after prior passes. |
-| 17 | Dev-only seed route | Operations | [HIDDEN] | `app/api/seed/route.ts` remains intentionally hidden from navigation in production. |
-| 18 | Auto-seed bootstrap | Operations | [HIDDEN] | `lib/db.ts` initializes schema and sample data without a dedicated UI. |
+| 1 | Seeded-demo landing flow | Marketing | [COVERED] | `app/page.tsx` truthfully frames the current product as an admin demo. |
+| 2 | Admin shell navigation and mobile drawer | Shell | [COVERED] | `app/admin/layout.tsx` and `components/Sidebar.tsx` include the prior pass accessibility fixes. |
+| 3 | Dashboard KPI, alert, and seed visibility | Dashboard | [COVERED] | Dashboard and seed-status flows are coherent in `app/admin/page.tsx`, `app/api/dashboard/route.ts`, and `app/api/seed/route.ts`. |
+| 4 | Game library browse, recovery, and CRUD | Games | [COVERED] | Filter reset, active-filter feedback, and modal CRUD are present in `app/admin/games/**`. |
+| 5 | Floor map table detail flow | Tables | [PARTIAL] | `FloorMap.tsx` still falls back to the first table when nothing is selected, which makes the detail pane look pre-confirmed. |
+| 6 | Table management and editing | Tables | [COVERED] | Manage/edit surfaces are understandable and operator-oriented after prior clean-up. |
+| 7 | Check-in and billing closeout | Tables | [COVERED] | Capacity-aware check-in plus session closeout are solid in `CheckInModal.tsx` and `app/api/sessions/**`. |
+| 8 | Game checkout assignment | Checkout | [COVERED] | Session/game selection and return validation are intact. |
+| 9 | Checkout history reachability | Checkout | [PARTIAL] | `app/admin/checkout/page.tsx` still slices returned history to 50 rows, while `app/api/checkout/route.ts` caps the feed at 150. |
+| 10 | Reservation filters, zero states, and CRUD | Reservations | [PARTIAL] | Empty-state recovery is fixed, but manual table assignment does not distinguish live table states and status changes still complete silently. |
+| 11 | Event cards and event CRUD | Events | [COVERED] | Event catalog and edit flows remain complete in `app/admin/events/**`. |
+| 12 | RSVP availability feedback | Events | [PARTIAL] | `RsvpModal.tsx` explains remaining seats, but the add flow still advertises RSVP entry when the event is already full. |
 
 ## Phase 3 — Quality Findings & Severities
 
-### 1. Demo credibility drift on the landing page `[MAJOR]`
-**Criterion:** Trust / message accuracy  
-**Problem:** `app/page.tsx` still presents fabricated adoption metrics, pricing tiers, and testimonials as if CaféMeeple were a live commercial product. That conflicts with the actual experience being offered today: a seeded admin demo backed by `lib/seed.ts`, `app/admin/**`, and `app/api/**`.  
-**Concrete paths:** `app/page.tsx`, `lib/seed.ts`
+### 1. Manual reservation table assignment hides live table state `[MAJOR]`
+**Criterion:** Error prevention / scheduling clarity  
+**Problem:** `ReservationModal.tsx` renders every table as a plain option, so staff cannot tell which tables are currently occupied, reserved, or under maintenance when they manually pin a reservation. The reservation API routes only enforce capacity and reservation overlap; they do not block maintenance tables, so a booking can still be assigned to a blocked table with no warning.  
+**Concrete paths:** `app/admin/reservations/components/ReservationModal.tsx`, `app/api/reservations/route.ts`, `app/api/reservations/[id]/route.ts`, `app/api/tables/route.ts`
 
-### 2. Weak filter recovery in the game library `[MAJOR]`
-**Criterion:** Discoverability / recovery  
-**Problem:** `app/admin/games/components/GameFilterBar.tsx` exposes six independent controls, but neither it nor `app/admin/games/page.tsx` offers a reset-all action or active-filter summary. It is easy to land on an empty result set with no quick recovery path.  
-**Concrete paths:** `app/admin/games/page.tsx`, `app/admin/games/components/GameFilterBar.tsx`
+### 2. Returned checkout history is still truncated `[MAJOR]`
+**Criterion:** Traceability / auditability  
+**Problem:** The checkout page only renders `pastCheckouts.slice(0, 50)` while the API itself hard-caps the ledger response at 150 rows. Older return records become unreachable in the UI even when operators are explicitly filtering the ledger to investigate a past checkout.  
+**Concrete paths:** `app/admin/checkout/page.tsx`, `app/api/checkout/route.ts`
 
-### 3. Reservation empty states do not explain filtered-out results `[MAJOR]`
-**Criterion:** Feedback / recovery  
-**Problem:** When search, status, or date filters remove all results, `ReservationList.tsx` still says “No reservations,” and `ReservationCalendar.tsx` still says “No reservations for this date.” The UI does not acknowledge active filters or offer a local reset path from the zero-state itself.  
-**Concrete paths:** `app/admin/reservations/page.tsx`, `app/admin/reservations/components/ReservationList.tsx`, `app/admin/reservations/components/ReservationCalendar.tsx`
+### 3. Sold-out event RSVPs still look actionable `[MODERATE]`
+**Criterion:** Feedback / error prevention  
+**Problem:** `RsvpModal.tsx` correctly calculates remaining seats, but the “Add RSVP” affordance stays available until the user tries to submit. The API then rejects the request for capacity, turning a known sold-out state into a preventable error path.  
+**Concrete paths:** `app/admin/events/components/RsvpModal.tsx`, `app/api/events/[id]/rsvps/route.ts`
 
-### 4. Check-in flow relies on server rejection for table-capacity mismatches `[MAJOR]`
-**Criterion:** Error prevention / data entry safety  
-**Problem:** `CheckInModal.tsx` does not clamp guest count when staff switch to a smaller table and does not clearly explain the table-capacity limit inline. The API in `app/api/sessions/route.ts` eventually blocks oversized parties, but the modal lets operators reach a bad state first.  
-**Concrete paths:** `app/admin/tables/components/CheckInModal.tsx`, `app/api/sessions/route.ts`
+### 4. The floor map preselects an arbitrary table `[MODERATE]`
+**Criterion:** Information scent / orientation  
+**Problem:** `FloorMap.tsx` falls back to `tables[0]` whenever no explicit selection exists. That makes the detail panel appear authoritative on first load even though the operator has not chosen any table yet.  
+**Concrete paths:** `app/admin/tables/components/FloorMap.tsx`
 
-### 5. Developer-centric copy leaks into operator-facing admin screens `[MODERATE]`
-**Criterion:** Clarity / professionalism  
-**Problem:** Several admin views expose internal implementation details instead of staff-oriented language: the dashboard mentions `POST /api/seed`, checkout references `session_id` / `game_id` and `app/api/checkout/route.ts`, and tables screens reference `app/api/tables/[id]/route.ts` and raw floor-layout internals. This makes polished operational UI feel like a developer console.  
-**Concrete paths:** `app/admin/page.tsx`, `app/admin/checkout/page.tsx`, `app/admin/tables/page.tsx`, `app/admin/tables/components/FloorMap.tsx`, `app/admin/tables/components/TableManagement.tsx`
+### 5. Reservation status changes complete with no success feedback `[LOW]`
+**Criterion:** System feedback  
+**Problem:** `handleStatusChange` in `app/admin/reservations/page.tsx` refreshes the list after confirm / no-show actions, but it never surfaces a success toast. The buttons feel silent compared with the add/edit/delete flows on the same screen.  
+**Concrete paths:** `app/admin/reservations/page.tsx`
 
 ## Phase 4 — Remediations with Effort
 
 | # | Remediation | Effort | Target paths |
 | --- | --- | --- | --- |
-| 1 | Reframe the landing page as a truthful seeded demo walkthrough: replace fabricated stats/pricing/testimonials with real demo highlights and current admin-route CTAs. | [S] | `app/page.tsx`, `lib/seed.ts` |
-| 2 | Add reset-all recovery to the games toolbar and show how many filters are active so staff can quickly recover from empty result sets. | [XS] | `app/admin/games/page.tsx`, `app/admin/games/components/GameFilterBar.tsx` |
-| 3 | Make reservation zero-states filter-aware, with contextual messaging and an inline reset path in both list and calendar views. | [S] | `app/admin/reservations/page.tsx`, `ReservationList.tsx`, `ReservationCalendar.tsx` |
-| 4 | Clamp guest count to the selected table capacity, explain the limit inline, and prevent invalid check-in submissions before they hit the API. | [S] | `app/admin/tables/components/CheckInModal.tsx`, `app/api/sessions/route.ts` |
-| 5 | Replace developer-facing helper copy with operator-language guidance on dashboard, checkout, and tables screens. | [XS] | `app/admin/page.tsx`, `app/admin/checkout/page.tsx`, `app/admin/tables/page.tsx`, `FloorMap.tsx`, `TableManagement.tsx` |
+| 1 | Make reservation table choices status-aware, disable or reject maintenance-table assignment, and add inline guidance when a selected table is currently in service. | [S] | `app/admin/reservations/components/ReservationModal.tsx`, `app/admin/reservations/page.tsx`, `app/api/reservations/route.ts`, `app/api/reservations/[id]/route.ts` |
+| 2 | Remove the local 50-row history cap, let the checkout API honor larger limits, and add a load-more path so older return records remain reachable. | [S] | `app/admin/checkout/page.tsx`, `app/api/checkout/route.ts` |
+| 3 | Disable RSVP entry when an event is full (and close server-side registration for unavailable events) so operators never start a known-bad add flow. | [XS] | `app/admin/events/components/RsvpModal.tsx`, `app/api/events/[id]/rsvps/route.ts` |
+| 4 | Replace the floor-map default detail pane with an explicit “select a table” state until the operator actually chooses one. | [XS] | `app/admin/tables/components/FloorMap.tsx` |
+| 5 | Add affirmative toast feedback for reservation lifecycle actions such as confirm and no-show. | [XS] | `app/admin/reservations/page.tsx` |
 
 ## Phase 5 — Stack Rank + Quick Wins
 
@@ -110,33 +92,33 @@ The shipped surface is broad and cohesive, but this fresh pass still found **5 a
 
 | Rank | Remediation | Why now |
 | --- | --- | --- |
-| 1 | Games filter reset + active filter count | High clarity gain with tiny surface area; immediately improves a core browse workflow. |
-| 2 | Operator-copy cleanup | Fast polish pass across multiple screens that removes avoidable jargon and trust drag. |
-| 3 | Reservation zero-state reset affordance | Low engineering risk, strong recovery improvement when filters hide data. |
+| 1 | Sold-out RSVP guardrails | Tiny change with immediate reduction in avoidable operator errors. |
+| 2 | Floor-map explicit selection | Quick clarity win that removes a misleading default state on a high-traffic page. |
+| 3 | Reservation status success feedback | Very small change that makes lifecycle actions feel reliable and complete. |
 
 ### Full Stack Rank
 
 | Rank | Item | Severity | Effort | Rationale |
 | --- | --- | --- | --- | --- |
-| 1 | Check-in capacity guardrails | [MAJOR] | [S] | Prevents avoidable operator errors in a live floor workflow before the server has to reject the action. |
-| 2 | Game filter recovery | [MAJOR] | [XS] | The game library is a daily-use surface, and six filters without reset is easy to misconfigure. |
-| 3 | Reservation filter-aware empty states | [MAJOR] | [S] | Makes “no data” states explainable and reversible from the exact screen where confusion happens. |
-| 4 | Landing page demo credibility | [MAJOR] | [S] | First impression still over-promises versus the product currently available in `/admin`. |
-| 5 | Admin copy cleanup | [MODERATE] | [XS] | Removes internal jargon that makes operator UI feel unfinished. |
+| 1 | Reservation table serviceability cues and guardrails | [MAJOR] | [S] | Prevents staff from pinning bookings to blocked tables and makes live table state visible during assignment. |
+| 2 | Checkout history reachability | [MAJOR] | [S] | The ledger is an operational record; older returns must stay reachable when staff investigate past activity. |
+| 3 | Sold-out RSVP guardrails | [MODERATE] | [XS] | Removes an avoidable submit-and-fail loop from the events workflow. |
+| 4 | Floor-map explicit selection | [MODERATE] | [XS] | Stops the interface from implying an operator choice that never happened. |
+| 5 | Reservation status success feedback | [LOW] | [XS] | Small polish improvement that aligns status buttons with the rest of the app’s feedback model. |
 
 ## Implementation Status
 
-**Status:** All 5 remediations from this audit are complete.
+**Status:** Pending implementation for the 5 remediations in this report.
 
-- [x] Reframe `app/page.tsx` around the current seeded demo rather than unsupported commercial claims.
-- [x] Add reset-all recovery and active-filter feedback to the games toolbar.
-- [x] Make reservation empty states context-aware and resettable.
-- [x] Guard check-in party size against selected-table capacity in the modal.
-- [x] Remove developer-facing implementation jargon from operator-visible admin copy.
+- [ ] Make reservation table choices status-aware and block maintenance-table assignment.
+- [ ] Expose older checkout history beyond the 50-row UI cap.
+- [ ] Disable RSVP entry for sold-out or unavailable events before submit.
+- [ ] Require explicit floor-map selection before showing table details.
+- [ ] Add success feedback for reservation status changes.
 
 ### Baseline validation completed before edits
 
-- `npm run lint`
-- `npm run typecheck`
-- `npm run build`
-- `npm run test`
+- [x] `npm run lint`
+- [x] `npm run typecheck`
+- [x] `npm run build`
+- [x] `npm run test`
