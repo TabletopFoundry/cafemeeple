@@ -124,6 +124,14 @@ export default function ReservationsPage() {
         throw new Error(data?.error || "Failed to update reservation");
       }
       refresh();
+      addToast(
+        status === "confirmed"
+          ? "Reservation confirmed"
+          : status === "no-show"
+            ? "Reservation marked as no-show"
+            : "Reservation updated",
+        "success",
+      );
     } catch (error) {
       addToast(error instanceof Error ? error.message : "Failed to update reservation", "error");
     }

@@ -48,6 +48,14 @@ test("reservation table assignment surfaces live states and blocks maintenance t
   assert.match(updateRouteSource, /TABLE_UNAVAILABLE/);
 });
 
+test("reservation status changes surface success feedback", () => {
+  const source = readSource("app/admin/reservations/page.tsx");
+
+  assert.match(source, /Reservation confirmed/);
+  assert.match(source, /Reservation marked as no-show/);
+  assert.match(source, /"success"/);
+});
+
 test("checkout flow shows selected-game feedback and requires explicit return condition", () => {
   const checkoutFormSource = readSource("app/admin/checkout/components/CheckoutForm.tsx");
   const returnModalSource = readSource("app/admin/checkout/components/ReturnModal.tsx");
