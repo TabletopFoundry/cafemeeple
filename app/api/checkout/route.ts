@@ -6,6 +6,14 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const sessionId = url.searchParams.get("session_id");
     const gameId = url.searchParams.get("game_id");
+    const limitParam = Number(url.searchParams.get("limit") || 250);
+    const offsetParam = Number(url.searchParams.get("offset") || 0);
+    const limit = Number.isFinite(limitParam)
+      ? Math.min(Math.max(Math.trunc(limitParam), 1), 1000)
+      : 250;
+    const offset = Number.isFinite(offsetParam)
+      ? Math.max(Math.trunc(offsetParam), 0)
+      : 0;
 
     let query = `
       SELECT gc.*, g.title as game_title, g.category as game_category,
@@ -16,7 +24,7 @@ export async function GET(request: Request) {
       JOIN tables t ON s.table_id = t.id
       WHERE 1=1
     `;
-    const params: string[] = [];
+    const params: Array<string | number> = [];
 
     if (sessionId) {
       query += " AND gc.session_id = ?";
@@ -27,7 +35,8 @@ export async function GET(request: Request) {
       params.push(gameId);
     }
 
-    query += " ORDER BY gc.checked_out_at DESC LIMIT 150";
+    query += " ORDER BY gc.checked_out_at DESC LIMIT ? OFFSET ?";
+    params.push(limit, offset);
 
     const checkouts = db.prepare(query).all(...params);
     return Response.json(checkouts);

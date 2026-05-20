@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ErrorMessage, EmptyState, LoadingCard } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 import { useMultiFetch } from "@/hooks/useFetch";
@@ -26,6 +26,7 @@ type CheckoutPageData = {
 const EMPTY_SESSIONS: CheckoutSession[] = [];
 const EMPTY_GAMES: GameSummary[] = [];
 const EMPTY_CHECKOUTS: Checkout[] = [];
+const HISTORY_PAGE_SIZE = 50;
 
 export default function CheckoutPage() {
   usePageTitle("Checkout");
@@ -38,11 +39,12 @@ export default function CheckoutPage() {
   const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
   const [recordSessionFilter, setRecordSessionFilter] = useState<number | null>(null);
   const [recordGameFilter, setRecordGameFilter] = useState<number | null>(null);
+  const [historyVisibleCount, setHistoryVisibleCount] = useState(HISTORY_PAGE_SIZE);
   const { addToast } = useToast();
   const { data, loading, error, refresh } = useMultiFetch<CheckoutPageData>({
     sessions: "/api/sessions?status=active",
     games: "/api/games",
-    checkouts: "/api/checkout",
+    checkouts: "/api/checkout?limit=1000",
   });
 
   const sessions = data?.sessions ?? EMPTY_SESSIONS;
@@ -109,6 +111,8 @@ export default function CheckoutPage() {
 
   const activeCheckouts = filteredCheckouts.filter((checkout) => !checkout.returned_at);
   const pastCheckouts = filteredCheckouts.filter((checkout) => checkout.returned_at);
+  const visiblePastCheckouts = pastCheckouts.slice(0, historyVisibleCount);
+  const hasMoreHistory = pastCheckouts.length > historyVisibleCount;
   const hasFilters = recordSessionFilter !== null || recordGameFilter !== null;
 
   const recordSessionOptions = Array.from(
@@ -140,6 +144,10 @@ export default function CheckoutPage() {
     setGameSearch("");
     setActiveIndex(-1);
   };
+
+  useEffect(() => {
+    setHistoryVisibleCount(HISTORY_PAGE_SIZE);
+  }, [recordSessionFilter, recordGameFilter]);
 
   if (loading) {
     return (
@@ -337,7 +345,20 @@ export default function CheckoutPage() {
             }
           />
         ) : (
-          <CheckoutHistory checkouts={pastCheckouts.slice(0, 50)} />
+          <div className="space-y-4">
+            <CheckoutHistory checkouts={visiblePastCheckouts} />
+            {hasMoreHistory && (
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setHistoryVisibleCount((count) => count + HISTORY_PAGE_SIZE)}
+                  className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                  Load 50 more
+                </button>
+              </div>
+            )}
+          </div>
         ))}
 
       {returnModal && (

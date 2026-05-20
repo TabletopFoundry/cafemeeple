@@ -60,6 +60,17 @@ test("checkout flow shows selected-game feedback and requires explicit return co
   assert.match(returnRouteSource, /validateRequired\(return_condition, \"return_condition\"\)/);
 });
 
+test("checkout history can load past the first 50 returned records", () => {
+  const pageSource = readSource("app/admin/checkout/page.tsx");
+  const routeSource = readSource("app/api/checkout/route.ts");
+
+  assert.match(pageSource, /\/api\/checkout\?limit=1000/);
+  assert.match(pageSource, /const \[historyVisibleCount, setHistoryVisibleCount\] = useState\(HISTORY_PAGE_SIZE\);/);
+  assert.match(pageSource, /Load 50 more/);
+  assert.match(routeSource, /const limitParam = Number\(url.searchParams.get\(\"limit\"\) \|\| 250\);/);
+  assert.match(routeSource, /LIMIT \? OFFSET \?/);
+});
+
 test("game library filters expose reset recovery and active-filter feedback", () => {
   const gamesPageSource = readSource("app/admin/games/page.tsx");
   const filterBarSource = readSource("app/admin/games/components/GameFilterBar.tsx");
