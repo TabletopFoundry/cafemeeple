@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "CaféMeeple — Board Game Café Management SaaS",
+  title: "CaféMeeple — Board Game Café Ops Demo",
   description:
-    "The all-in-one platform for managing your board game café: game library, tables, cover charges, reservations, events, and analytics. No more spreadsheets or guesswork.",
+    "Explore a seeded board game café admin demo for game libraries, tables, cover charges, reservations, events, checkout, and analytics.",
   openGraph: {
-    title: "CaféMeeple — Board Game Café Management",
+    title: "CaféMeeple — Board Game Café Ops Demo",
     description:
-      "Manage your game library, tables, reservations, and events in one purpose-built platform for board game cafés.",
+      "Preview the current CaféMeeple admin demo for floor operations, reservations, events, checkout, and analytics.",
     type: "website",
     siteName: "CaféMeeple",
   },
@@ -23,45 +23,79 @@ const FEATURES = [
   {
     icon: "🪑",
     title: "Table & Session Management",
-    description: "Visual floor map, one-click check-in, automatic cover charges, and real-time occupancy tracking.",
+    description: "Use the floor map, seat walk-ins, estimate cover charges, and track live occupancy.",
   },
   {
     icon: "📅",
     title: "Reservations Management",
-    description: "Staff calendar, date-based filters, table assignment, and no-show handling for daily bookings.",
+    description: "Work daily bookings through date filters, table assignment, and lifecycle actions.",
   },
   {
     icon: "🎉",
     title: "Events & RSVPs",
-    description: "Schedule game nights, tournaments, and workshops with capacity management and RSVP tracking.",
+    description: "Schedule game nights, tournaments, and workshops with capacity-aware RSVP tracking.",
   },
   {
     icon: "📊",
-    title: "Analytics & Insights",
-    description: "Track revenue mix, popular games, upcoming events, and operational alerts from the admin dashboard.",
+    title: "Dashboard & Alerts",
+    description: "Review revenue mix, popular games, upcoming events, and floor alerts from one dashboard.",
   },
   {
     icon: "🔄",
     title: "Game Checkout Tracking",
-    description: "Assign games to tables, track returns, log condition changes, and review checkout history.",
+    description: "Assign games to tables, record returns, log condition changes, and review checkout history.",
   },
 ];
 
-const TESTIMONIALS = [
+const DEMO_HIGHLIGHTS = [
   {
-    quote: "CaféMeeple transformed how we run our café. Check-ins went from 2 minutes to 15 seconds.",
-    author: "Sarah K.",
-    role: "Owner, Dice & Lattes",
+    value: "100+ seeded games",
+    label: "Search, filter, and maintain a realistic library catalog.",
   },
   {
-    quote: "We finally know which games are worth buying more copies of. The analytics are incredible.",
-    author: "Marcus T.",
-    role: "Manager, The Game Room",
+    value: "15 café tables",
+    label: "Run floor-map seating, sessions, and billing handoff flows.",
   },
   {
-    quote: "Our staff can recommend games to any group in seconds, even on their first day.",
-    author: "Yuki M.",
-    role: "GM, BoardTown Café",
+    value: "6 admin workspaces",
+    label: "Dashboard, games, tables, checkout, reservations, and events.",
+  },
+  {
+    value: "SQLite-backed demo data",
+    label: "Explore seeded sessions, reservations, RSVPs, and checkout history.",
+  },
+];
+
+const DEMO_TRACKS = [
+  {
+    title: "Front-of-house flow",
+    description: "Seat a party, estimate cover charges, assign games, and close the session from the same admin shell.",
+    accent: "border-violet-200 bg-violet-50",
+  },
+  {
+    title: "Library upkeep",
+    description: "Search by title, category, condition, or player count while tracking replacement risk and copy health.",
+    accent: "border-amber-200 bg-amber-50",
+  },
+  {
+    title: "Bookings and programming",
+    description: "Review reservations, event capacity, upcoming alerts, and RSVP pressure without leaving the demo dataset.",
+    accent: "border-emerald-200 bg-emerald-50",
+  },
+];
+
+const OPERATOR_WORKFLOWS = [
+  {
+    title: "Pressure-test the floor plan",
+    description: "Inspect occupied, available, reserved, and maintenance tables from both the map and list views.",
+  },
+  {
+    title: "Spot replacement risk early",
+    description: "Use the game library and dashboard alerts to find worn copies before the next busy shift.",
+  },
+  {
+    title: "Validate reservation and event handling",
+    description: "Walk through list/calendar booking flows plus capacity-aware event RSVP management.",
   },
 ];
 
@@ -77,20 +111,20 @@ export default function LandingPage() {
           </div>
           <nav className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm text-gray-600 hover:text-gray-900">Features</a>
-            <a href="#pricing" className="text-sm text-gray-600 hover:text-gray-900">Pricing</a>
-            <a href="#testimonials" className="text-sm text-gray-600 hover:text-gray-900">Testimonials</a>
+            <a href="#highlights" className="text-sm text-gray-600 hover:text-gray-900">Demo Highlights</a>
+            <a href="#workflows" className="text-sm text-gray-600 hover:text-gray-900">Workflows</a>
             <Link
               href="/admin"
               className="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors"
             >
-              Open Dashboard
+              Open Admin Demo
             </Link>
           </nav>
           <Link
             href="/admin"
             className="md:hidden bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
           >
-            Dashboard
+            Admin Demo
           </Link>
         </div>
       </header>
@@ -100,54 +134,44 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="inline-flex items-center gap-2 bg-violet-50 text-violet-700 px-4 py-1.5 rounded-full text-sm font-medium mb-8">
             <span>🎲</span>
-            Built for board game cafés
+            Seeded admin demo for board game cafés
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            Your café&apos;s operating system,
+            Explore CaféMeeple,
             <br />
             <span className="text-violet-600">from shelf to table</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-            Manage your game library, tables, cover charges, reservations, and events in one purpose-built platform.
-            No more spreadsheets, sticky notes, or guesswork.
+          <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto">
+            This experience is a current ops demo: browse a seeded game library, run the floor map,
+            manage reservations and events, assign games to tables, and review dashboard alerts in one admin flow.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/admin"
               className="bg-violet-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-violet-700 transition-colors text-lg"
             >
-              Open Dashboard →
+              Launch Admin Demo →
             </Link>
             <a
-              href="#features"
+              href="#highlights"
               className="border border-gray-300 text-gray-700 px-8 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors text-lg"
             >
-              See Features
+              See Demo Highlights
             </a>
           </div>
         </div>
       </section>
 
-      {/* Stats bar */}
-      <section className="bg-gray-50 border-y border-gray-200 py-12">
+      {/* Demo highlights */}
+      <section id="highlights" className="bg-gray-50 border-y border-gray-200 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold text-violet-600">150+</div>
-              <div className="text-sm text-gray-600 mt-1">Cafés Served</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-violet-600">50K+</div>
-              <div className="text-sm text-gray-600 mt-1">Games Tracked</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-violet-600">30s</div>
-              <div className="text-sm text-gray-600 mt-1">Avg Check-in Time</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-violet-600">99.5%</div>
-              <div className="text-sm text-gray-600 mt-1">Uptime SLA</div>
-            </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {DEMO_HIGHLIGHTS.map((highlight) => (
+              <div key={highlight.value} className="rounded-2xl border border-gray-200 bg-white p-6 text-center">
+                <div className="text-2xl font-bold text-violet-600">{highlight.value}</div>
+                <p className="mt-2 text-sm text-gray-600">{highlight.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -156,9 +180,9 @@ export default function LandingPage() {
       <section id="features" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Everything you need to run your café</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">What the current demo covers</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Purpose-built tools that understand the unique needs of board game cafés.
+              These are the live surfaces available today in the seeded CaféMeeple admin experience.
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -176,66 +200,38 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-20 bg-gray-50">
+      {/* Walkthroughs */}
+      <section id="workflows" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Simple, transparent pricing</h2>
-            <p className="text-lg text-gray-600">Start free, scale as you grow.</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Three demo walkthroughs to try first</h2>
+            <p className="text-lg text-gray-600">Use the seeded dataset to validate the operational loops that matter most.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="bg-white border border-gray-200 rounded-xl p-8">
-              <h3 className="text-lg font-semibold mb-2">Starter</h3>
-              <div className="text-3xl font-bold mb-1">$49<span className="text-lg font-normal text-gray-500">/mo</span></div>
-              <p className="text-gray-500 text-sm mb-6">For small cafés getting started</p>
-              <ul className="space-y-3 text-sm text-gray-600">
-                <li className="flex gap-2"><span className="text-emerald-500">✓</span> Up to 200 games</li>
-                <li className="flex gap-2"><span className="text-emerald-500">✓</span> 10 tables</li>
-                <li className="flex gap-2"><span className="text-emerald-500">✓</span> Basic analytics</li>
-                <li className="flex gap-2"><span className="text-emerald-500">✓</span> Email support</li>
-              </ul>
-            </div>
-            <div className="bg-violet-600 text-white rounded-xl p-8 shadow-xl scale-105">
-              <h3 className="text-lg font-semibold mb-2">Professional</h3>
-              <div className="text-3xl font-bold mb-1">$99<span className="text-lg font-normal text-violet-200">/mo</span></div>
-              <p className="text-violet-200 text-sm mb-6">Most popular for growing cafés</p>
-              <ul className="space-y-3 text-sm text-violet-100">
-                <li className="flex gap-2"><span>✓</span> Unlimited games</li>
-                <li className="flex gap-2"><span>✓</span> Unlimited tables</li>
-                <li className="flex gap-2"><span>✓</span> Advanced analytics</li>
-                <li className="flex gap-2"><span>✓</span> Reservation widget</li>
-                <li className="flex gap-2"><span>✓</span> Priority support</li>
-              </ul>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-8">
-              <h3 className="text-lg font-semibold mb-2">Enterprise</h3>
-              <div className="text-3xl font-bold mb-1">Custom</div>
-              <p className="text-gray-500 text-sm mb-6">For multi-location operators</p>
-              <ul className="space-y-3 text-sm text-gray-600">
-                <li className="flex gap-2"><span className="text-emerald-500">✓</span> Multi-location</li>
-                <li className="flex gap-2"><span className="text-emerald-500">✓</span> POS integration</li>
-                <li className="flex gap-2"><span className="text-emerald-500">✓</span> Custom reporting</li>
-                <li className="flex gap-2"><span className="text-emerald-500">✓</span> Dedicated support</li>
-              </ul>
-            </div>
+          <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
+            {DEMO_TRACKS.map((track) => (
+              <div key={track.title} className={`rounded-xl border p-8 ${track.accent}`}>
+                <h3 className="text-lg font-semibold text-gray-900">{track.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-700">{track.description}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section id="testimonials" className="py-20">
+      {/* Workflow outcomes */}
+      <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Loved by café owners</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">What this demo is built to validate</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Use the seeded admin data to explore how staff move between floor operations, library upkeep, and bookings.
+            </p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
-            {TESTIMONIALS.map((t) => (
-              <div key={t.author} className="bg-white border border-gray-200 rounded-xl p-6">
-                <p className="text-gray-700 mb-4 italic">&ldquo;{t.quote}&rdquo;</p>
-                <div>
-                  <p className="font-semibold text-gray-900">{t.author}</p>
-                  <p className="text-sm text-gray-500">{t.role}</p>
-                </div>
+            {OPERATOR_WORKFLOWS.map((workflow) => (
+              <div key={workflow.title} className="bg-white border border-gray-200 rounded-xl p-6">
+                <h3 className="font-semibold text-gray-900">{workflow.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-600">{workflow.description}</p>
               </div>
             ))}
           </div>

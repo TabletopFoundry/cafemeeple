@@ -12,14 +12,17 @@ function readSource(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
-test("landing page copy matches the current admin demo scope", () => {
+test("landing page presents CaféMeeple as a seeded admin demo", () => {
   const source = readSource("app/page.tsx");
 
-  assert.match(source, /title: \"Reservations Management\"/);
-  assert.match(source, /Open Dashboard →/);
-  assert.match(source, /Explore Admin Demo →/);
-  assert.doesNotMatch(source, /Reservations & Waitlist/);
-  assert.doesNotMatch(source, /BGG integration/);
+  assert.match(source, /Board Game Café Ops Demo/);
+  assert.match(source, /Seeded admin demo for board game cafés/);
+  assert.match(source, /Launch Admin Demo →/);
+  assert.match(source, /100\+ seeded games/);
+  assert.match(source, /What this demo is built to validate/);
+  assert.doesNotMatch(source, /Cafés Served/);
+  assert.doesNotMatch(source, /\$49/);
+  assert.doesNotMatch(source, /Loved by café owners/);
 });
 
 test("reservations reset button clears all active filters", () => {

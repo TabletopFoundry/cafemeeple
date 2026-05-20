@@ -126,9 +126,9 @@ The shipped surface is broad and cohesive, but this fresh pass still found **5 a
 
 ## Implementation Status
 
-**Status:** In progress (3 of 5 remediations complete).
+**Status:** In progress (4 of 5 remediations complete).
 
-- [ ] Reframe `app/page.tsx` around the current seeded demo rather than unsupported commercial claims.
+- [x] Reframe `app/page.tsx` around the current seeded demo rather than unsupported commercial claims.
 - [x] Add reset-all recovery and active-filter feedback to the games toolbar.
 - [x] Make reservation empty states context-aware and resettable.
 - [x] Guard check-in party size against selected-table capacity in the modal.
