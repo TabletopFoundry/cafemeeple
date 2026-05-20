@@ -117,6 +117,14 @@ test("mobile admin drawer includes close and escape affordances", () => {
   assert.match(source, /document.body.style.overflow = \"hidden\"/);
 });
 
+test("floor map waits for an explicit table selection", () => {
+  const source = readSource("app/admin/tables/components/FloorMap.tsx");
+
+  assert.match(source, /selectedTableId === null \? null : tables.find\(\(table\) => table.id === selectedTableId\) \?\? null/);
+  assert.match(source, /Select a table to inspect it/);
+  assert.doesNotMatch(source, /\?\? tables\[0\] \?\? null/);
+});
+
 test("admin surfaces avoid developer-facing implementation jargon", () => {
   const dashboardSource = readSource("app/admin/page.tsx");
   const checkoutSource = readSource("app/admin/checkout/page.tsx");

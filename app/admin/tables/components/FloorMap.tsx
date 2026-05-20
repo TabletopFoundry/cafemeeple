@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarClock, CreditCard, MapPinned, Users, Wrench } from "lucide-react";
-import { Badge } from "@/components/ui";
+import { Badge, EmptyState } from "@/components/ui";
 import { formatElapsed } from "@/lib/date-utils";
 import type { Reservation, Session, Table } from "@/lib/types";
 
@@ -87,7 +87,7 @@ export default function FloorMap({
   const mapWidth = Math.max(760, maxX + 140);
   const mapHeight = Math.max(480, maxY + 140);
   const selectedTable =
-    tables.find((table) => table.id === selectedTableId) ?? tables[0] ?? null;
+    selectedTableId === null ? null : tables.find((table) => table.id === selectedTableId) ?? null;
   const selectedSession = selectedTable ? sessionByTableId.get(selectedTable.id) : undefined;
   const selectedReservation = selectedTable
     ? reservationByTableId.get(selectedTable.id)
@@ -153,7 +153,7 @@ export default function FloorMap({
         </div>
       </div>
 
-      {selectedTable && (
+      {selectedTable ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -256,6 +256,14 @@ export default function FloorMap({
               Edit layout
             </button>
           </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-5">
+          <EmptyState
+            icon="🧭"
+            title="Select a table to inspect it"
+            description="Choose any table on the floor map to review live parties, reservations, billing, or table-management actions."
+          />
         </div>
       )}
     </div>
