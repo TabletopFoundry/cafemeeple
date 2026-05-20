@@ -275,9 +275,7 @@ export default function TableEditorModal({
         <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
           <p className="font-medium text-gray-900">Layout guidance</p>
           <p className="mt-1">
-            Coordinates place the table on the floor-plan canvas. Seeded tables use
-            values such as 50, 200, and 650, so the editor accepts a broader layout
-            range than the original 0–100 validation.
+            Use the X and Y fields to spread tables across the floor-plan canvas and keep seating areas easy to scan.
           </p>
         </div>
 

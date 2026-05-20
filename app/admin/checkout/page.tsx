@@ -204,7 +204,7 @@ export default function CheckoutPage() {
           <div>
             <h2 className="text-sm font-semibold text-gray-900">Ledger filters</h2>
             <p className="text-xs text-gray-500">
-              Surface the `session_id` and `game_id` filters already supported by `app/api/checkout/route.ts`.
+              Filter the checkout ledger by table session or game to find active and returned records faster.
             </p>
           </div>
           {hasFilters && (

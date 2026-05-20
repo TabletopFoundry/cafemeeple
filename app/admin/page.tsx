@@ -159,7 +159,7 @@ export default function DashboardPage() {
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Demo data status</h2>
             <p className="text-sm text-gray-500">
-              Visibility into the auto-seeded SQLite dataset behind the demo dashboard.
+              Confirm that the seeded sample data is ready before you walk through the admin flows.
             </p>
           </div>
           <Badge variant={seedStatus?.seeded ? "success" : "warning"}>
@@ -175,7 +175,7 @@ export default function DashboardPage() {
                 : "No demo records were detected yet."}
           </p>
           <p className="text-xs text-gray-500">
-            POST `/api/seed` remains intentionally hidden; auto-seeding and status are now visible from the dashboard.
+            This panel exists so staff can confirm the demo is ready to explore at a glance.
           </p>
         </div>
       </section>

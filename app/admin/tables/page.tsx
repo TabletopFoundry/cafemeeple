@@ -308,7 +308,7 @@ export default function TablesPage() {
       {deleteConfirm && (
         <ConfirmDialog
           title="Delete table"
-          message={`Delete ${deleteConfirm.name}? Existing API guardrails will block this if the table has sessions, reservations, or history.`}
+          message={`Delete ${deleteConfirm.name}? This only works when the table has no active sessions, reservations, or historical activity.`}
           confirmLabel="Delete table"
           onConfirm={() => handleDeleteTable(deleteConfirm)}
           onCancel={() => setDeleteConfirm(null)}

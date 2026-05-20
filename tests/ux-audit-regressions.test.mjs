@@ -90,6 +90,25 @@ test("mobile admin drawer includes close and escape affordances", () => {
   assert.match(source, /document.body.style.overflow = \"hidden\"/);
 });
 
+test("admin surfaces avoid developer-facing implementation jargon", () => {
+  const dashboardSource = readSource("app/admin/page.tsx");
+  const checkoutSource = readSource("app/admin/checkout/page.tsx");
+  const tablesPageSource = readSource("app/admin/tables/page.tsx");
+  const floorMapSource = readSource("app/admin/tables/components/FloorMap.tsx");
+  const tableManagementSource = readSource("app/admin/tables/components/TableManagement.tsx");
+  const tableEditorSource = readSource("app/admin/tables/components/TableEditorModal.tsx");
+
+  assert.match(dashboardSource, /Confirm that the seeded sample data is ready/);
+  assert.doesNotMatch(dashboardSource, /POST `\/api\/seed`/);
+  assert.match(checkoutSource, /Filter the checkout ledger by table session or game/);
+  assert.doesNotMatch(checkoutSource, /app\/api\/checkout\/route\.ts/);
+  assert.match(tablesPageSource, /This only works when the table has no active sessions, reservations, or historical activity\./);
+  assert.match(floorMapSource, /Review the saved floor layout, current parties, and the next best action for each table\./);
+  assert.doesNotMatch(floorMapSource, /stored `x_position`, `y_position`, and `shape`/);
+  assert.doesNotMatch(tableManagementSource, /app\/api\/tables\/\[id\]\/route\.ts/);
+  assert.match(tableEditorSource, /Use the X and Y fields to spread tables across the floor-plan canvas/);
+});
+
 test("check-in modal caps guest count to the selected table capacity", () => {
   const source = readSource("app/admin/tables/components/CheckInModal.tsx");
 

@@ -132,9 +132,8 @@ export default function TableManagement({
           </table>
         </div>
         <div className="border-t border-gray-100 bg-gray-50 px-4 py-3 text-xs text-gray-500">
-          Delete is only allowed for unused tables with no active sessions, reservations,
-          or historical usage. Existing guardrails remain enforced by
-          `app/api/tables/[id]/route.ts`.
+          Delete is only available for unused tables with no active sessions, reservations,
+          or historical usage.
         </div>
       </div>
     </div>

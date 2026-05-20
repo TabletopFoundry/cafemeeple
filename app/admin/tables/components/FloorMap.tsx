@@ -100,8 +100,7 @@ export default function FloorMap({
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Floor plan</h2>
             <p className="text-sm text-gray-500">
-              Table placement now uses the stored `x_position`, `y_position`, and `shape`
-              fields from the table model.
+              Review the saved floor layout, current parties, and the next best action for each table.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
@@ -165,8 +164,7 @@ export default function FloorMap({
                 </Badge>
               </div>
               <p className="mt-1 text-sm text-gray-500">
-                {selectedTable.section} · {selectedTable.capacity} seats · {selectedTable.shape}
-                {" "}shape · x {selectedTable.x_position} · y {selectedTable.y_position}
+                {selectedTable.section} · {selectedTable.capacity} seats · {selectedTable.shape} layout
               </p>
             </div>
             <button
