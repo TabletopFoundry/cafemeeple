@@ -36,6 +36,18 @@ test("reservations reset button clears all active filters", () => {
   assert.match(source, /Reset all filters/);
 });
 
+test("reservation table assignment surfaces live states and blocks maintenance tables", () => {
+  const modalSource = readSource("app/admin/reservations/components/ReservationModal.tsx");
+  const createRouteSource = readSource("app/api/reservations/route.ts");
+  const updateRouteSource = readSource("app/api/reservations/[id]/route.ts");
+
+  assert.match(modalSource, /In service now/);
+  assert.match(modalSource, /Leave this on Auto-assign to keep the booking flexible\./);
+  assert.match(modalSource, /status === "maintenance" && !isCurrentSelection/);
+  assert.match(createRouteSource, /TABLE_UNAVAILABLE/);
+  assert.match(updateRouteSource, /TABLE_UNAVAILABLE/);
+});
+
 test("checkout flow shows selected-game feedback and requires explicit return condition", () => {
   const checkoutFormSource = readSource("app/admin/checkout/components/CheckoutForm.tsx");
   const returnModalSource = readSource("app/admin/checkout/components/ReturnModal.tsx");

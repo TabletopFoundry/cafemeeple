@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
 import { DEFAULT_RESERVATION_DURATION, MAX_TEXT_LENGTHS } from "@/lib/constants";
@@ -20,7 +20,20 @@ type ModalReservation = Pick<
   | "notes"
 >;
 
-type TableOption = Pick<Table, "id" | "name" | "capacity">;
+type TableOption = Pick<Table, "id" | "name" | "capacity" | "section" | "status">;
+
+function tableStateLabel(status: Table["status"]) {
+  switch (status) {
+    case "occupied":
+      return "In service now";
+    case "reserved":
+      return "Reserved soon";
+    case "maintenance":
+      return "Maintenance";
+    default:
+      return "Ready now";
+  }
+}
 
 export interface ReservationFormValues {
   guest_name: string;
@@ -70,6 +83,24 @@ export default function ReservationModal({
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { addToast } = useToast();
+  const selectedTableId = typeof form.table_id === "string" ? Number(form.table_id || 0) : form.table_id;
+  const selectedTable = useMemo(
+    () => tables.find((table) => table.id === selectedTableId) ?? null,
+    [selectedTableId, tables],
+  );
+  const orderedTables = useMemo(() => {
+    const statusOrder: Record<Table["status"], number> = {
+      available: 0,
+      occupied: 1,
+      reserved: 2,
+      maintenance: 3,
+    };
+
+    return [...tables].sort(
+      (left, right) =>
+        statusOrder[left.status] - statusOrder[right.status] || left.name.localeCompare(right.name),
+    );
+  }, [tables]);
 
   const validate = (): Record<string, string> => {
     const errs: Record<string, string> = {};
@@ -79,6 +110,9 @@ export default function ReservationModal({
     }
     if (form.party_size < 1) errs.party_size = "Party size must be at least 1";
     if (form.duration_minutes < 30) errs.duration_minutes = "Duration must be at least 30 minutes";
+    if (selectedTable?.status === "maintenance") {
+      errs.table_id = `${selectedTable.name} is under maintenance. Choose another table or leave this reservation on auto-assign.`;
+    }
     return errs;
   };
 
@@ -197,16 +231,48 @@ export default function ReservationModal({
             <select
               id={tableId}
               value={form.table_id}
-              onChange={(e) => setForm({ ...form, table_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              onChange={(e) => {
+                setForm({ ...form, table_id: e.target.value });
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.table_id;
+                  return next;
+                });
+              }}
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 ${errors.table_id ? "border-red-400" : "border-gray-200"}`}
             >
               <option value="">Auto-assign</option>
-              {tables.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.capacity} seats)
-                </option>
-              ))}
+              {orderedTables.map((table) => {
+                const isCurrentSelection = table.id === selectedTableId;
+                return (
+                  <option
+                    key={table.id}
+                    value={table.id}
+                    disabled={table.status === "maintenance" && !isCurrentSelection}
+                  >
+                    {table.name} · {table.capacity} seats · {table.section} · {tableStateLabel(table.status)}
+                  </option>
+                );
+              })}
             </select>
+            <p
+              className={`mt-1 text-xs ${
+                selectedTable?.status === "maintenance"
+                  ? "text-red-600"
+                  : selectedTable && selectedTable.status !== "available"
+                    ? "text-amber-700"
+                    : "text-gray-500"
+              }`}
+            >
+              {selectedTable
+                ? selectedTable.status === "maintenance"
+                  ? `${selectedTable.name} is currently under maintenance and cannot take a manual reservation.`
+                  : selectedTable.status === "available"
+                    ? `${selectedTable.name} is ready right now. Leave the reservation on Auto-assign if you do not need to lock a specific table yet.`
+                    : `${selectedTable.name} is ${tableStateLabel(selectedTable.status).toLowerCase()}. Keep it only if you intentionally want to hold that table.`
+                : "Leave this on Auto-assign to keep the booking flexible. Live table states are shown here for the current floor."}
+            </p>
+            {errors.table_id && <p className="mt-1 text-xs text-red-600">{errors.table_id}</p>}
           </div>
         </div>
         <div>

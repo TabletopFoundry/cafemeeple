@@ -30,7 +30,7 @@ type ReservationRecord = Pick<
   table_name: string | null;
 };
 
-type TableOption = Pick<Table, "id" | "name" | "capacity">;
+type TableOption = Pick<Table, "id" | "name" | "capacity" | "section" | "status">;
 
 type StatusVariant = "success" | "warning" | "danger" | "info" | "default";
 

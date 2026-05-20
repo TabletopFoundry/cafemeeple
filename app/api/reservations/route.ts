@@ -67,11 +67,14 @@ export async function POST(request: Request) {
       const effectiveDuration = duration_minutes || DEFAULT_RESERVATION_DURATION;
 
       if (table_id) {
-        const table = db.prepare("SELECT id, capacity FROM tables WHERE id = ?").get(table_id) as
-          | { id: number; capacity: number }
+        const table = db.prepare("SELECT id, capacity, status FROM tables WHERE id = ?").get(table_id) as
+          | { id: number; capacity: number; status: string }
           | undefined;
         if (!table) {
           throw new Error("TABLE_NOT_FOUND");
+        }
+        if (table.status === "maintenance") {
+          throw new Error("TABLE_UNAVAILABLE");
         }
         if (effectivePartySize > table.capacity) {
           throw new Error(`TABLE_CAPACITY:${table.capacity}`);
@@ -120,6 +123,12 @@ export async function POST(request: Request) {
         return Response.json(
           { error: `Party size exceeds table capacity (${capacity})` },
           { status: 400 },
+        );
+      }
+      if (txError instanceof Error && txError.message === "TABLE_UNAVAILABLE") {
+        return Response.json(
+          { error: "This table is under maintenance. Choose another table or leave the reservation unassigned." },
+          { status: 409 },
         );
       }
       if (txError instanceof Error && txError.message === "TABLE_OVERLAP") {
